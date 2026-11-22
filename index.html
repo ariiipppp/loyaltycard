@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NORTHMAN — Digital Loyalty & POS System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Playfair Display"', 'serif'],
+                    },
+                    colors: {
+                        espresso: {
+                            950: '#120D0A',
+                            900: '#1C1410',
+                            800: '#2A1E18',
+                            700: '#3D2C23',
+                        },
+                        oat: {
+                            50: '#FAF8F5',
+                            100: '#F4EFE6',
+                            200: '#E8DEC8',
+                            300: '#D6C5A5',
+                        },
+                        caramel: {
+                            400: '#E5A95C',
+                            500: '#D48C3B',
+                            600: '#B57024',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FAF8F5;
+            color: #1C1410;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F4EFE6; }
+        ::-webkit-scrollbar-thumb { background: #D6C5A5; border-radius: 999px; }
+        @keyframes stampPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.15); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .stamp-animate { animation: stampPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .member-card-bg {
+            background: radial-gradient(circle at top right, #3D2C23 0%, #1C1410 55%, #120D0A 100%);
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #F3D098 0%, #D48C3B 50%, #F3D098 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        #device-frame {
+            transition: max-width 0.3s ease, border-radius 0.3s ease, box-shadow 0.3s ease;
+        }
+        #device-frame.mode-mobile {
+            max-width: 390px;
+            margin: 1rem auto;
+            border: 10px solid #1C1410;
+            border-radius: 2.25rem;
+            box-shadow: 0 25px 50px -12px rgba(18, 13, 10, 0.35);
+            overflow-x: hidden;
+            background-color: #FAF8F5;
+        }
+        #device-frame.mode-tablet {
+            max-width: 768px;
+            margin: 1rem auto;
+            border: 8px solid #2A1E18;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 40px -12px rgba(18, 13, 10, 0.25);
+            overflow-x: hidden;
+            background-color: #FAF8F5;
+        }
+        #device-frame.mode-laptop {
+            max-width: 100%;
+            margin: 0 auto;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-oat-100/70">
+
+    <!-- Responsive Viewport Switcher Bar (HP / Tablet / Laptop) -->
+    <div class="bg-espresso-950 text-oat-200 border-b border-espresso-800 px-4 py-1.5 text-[11px] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="font-semibold tracking-wide">NORTHMAN Web App</span>
+        </div>
+        <div class="flex items-center gap-1 bg-espresso-900 p-0.5 rounded-lg border border-espresso-800">
+            <button onclick="setViewportMode('mobile')" id="vp-btn-mobile" class="vp-btn px-2.5 py-1 rounded-md font-bold flex items-center gap-1 text-oat-300 hover:text-white transition">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+                <span>HP</span>
+            </button>
+            <button onclick="setViewportMode('tablet')" id="vp-btn-tablet" class="vp-btn px-2.5 py-1 rounded-md font-bold flex items-center gap-1 text-oat-300 hover:text-white transition">
+                <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+                <span>Tablet</span>
+            </button>
+            <button onclick="setViewportMode('laptop')" id="vp-btn-laptop" class="vp-btn px-2.5 py-1 rounded-md font-bold flex items-center gap-1 bg-caramel-500 text-espresso-950 transition">
+                <i data-lucide="laptop" class="w-3.5 h-3.5"></i>
+                <span>Laptop</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-12 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 md:px-0"></div>
+
+    <!-- Custom Modal Container -->
+    <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-espresso-950/70 backdrop-blur-sm p-4">
+        <div class="bg-white border border-oat-200 rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <h3 id="modal-title" class="text-lg font-bold text-espresso-900">Konfirmasi</h3>
+                <button onclick="closeModal()" class="p-1.5 rounded-lg text-espresso-700 hover:bg-oat-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="modal-message" class="text-sm text-espresso-700 mb-4 leading-relaxed"></div>
+            <div id="modal-actions" class="flex justify-end gap-3"></div>
+        </div>
+    </div>
+
+    <!-- Staff Login Modal (Cashier & Admin) -->
+    <div id="staff-login-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-espresso-950/75 backdrop-blur-sm p-4">
+        <div class="bg-white border border-oat-200 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-espresso-900 text-caramel-400 flex items-center justify-center">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 id="staff-login-title" class="text-base font-bold text-espresso-900">Login Staf</h3>
+                        <p id="staff-login-subtitle" class="text-xs text-espresso-700">Masukkan PIN akses</p>
+                    </div>
+                </div>
+                <button onclick="closeStaffLoginModal()" class="p-1.5 rounded-lg text-espresso-700 hover:bg-oat-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleStaffLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-espresso-700 mb-1.5">PIN Akses</label>
+                    <input type="password" id="staff-pin-input" required autocomplete="off" placeholder="Masukkan PIN..." class="w-full px-4 py-3 rounded-xl bg-oat-50 border border-oat-200 focus:outline-none focus:border-caramel-500 text-sm font-semibold tracking-widest">
+                    <p id="staff-pin-hint" class="text-[11px] text-espresso-700 mt-1.5"></p>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeStaffLoginModal()" class="px-4 py-2.5 rounded-xl bg-oat-100 text-espresso-800 text-xs font-bold">Batal</button>
+                    <button type="submit" id="staff-login-submit-btn" class="px-5 py-2.5 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-oat-50 text-xs font-bold shadow">
+                        Masuk
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Device Frame Wrapper -->
+    <div id="device-frame" class="mode-laptop flex-1 w-full flex flex-col bg-oat-50">
+
+        <!-- Top Navigation Header -->
+        <header class="sticky top-0 z-40 bg-espresso-900 text-oat-50 border-b border-espresso-700 shadow-lg">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-caramel-400 to-caramel-600 flex items-center justify-center text-espresso-950 shadow-md">
+                        <i data-lucide="coffee" class="w-6 h-6 stroke-[2.5]"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-serif font-bold text-xl tracking-wider text-oat-50">NORTHMAN</span>
+                            <span id="sync-badge" class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-caramel-500/20 text-caramel-400 border border-caramel-500/30">Cloud Ready</span>
+                        </div>
+                        <p class="text-xs text-oat-300">Specialty Coffee & Roastery Loyalty</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <nav class="flex items-center bg-espresso-950 p-1 rounded-xl border border-espresso-700 flex-1 md:flex-none justify-between md:justify-start">
+                        <button onclick="switchRole('customer')" id="tab-customer" class="role-tab flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-caramel-500 text-espresso-950 shadow">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                            <span>Pelanggan</span>
+                        </button>
+                        <button onclick="requestStaffRole('cashier')" id="tab-cashier" class="role-tab flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-oat-300 hover:text-white">
+                            <i data-lucide="lock" id="lock-icon-cashier" class="w-3.5 h-3.5"></i>
+                            <span>Kasir POS</span>
+                        </button>
+                        <button onclick="requestStaffRole('admin')" id="tab-admin" class="role-tab flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-oat-300 hover:text-white">
+                            <i data-lucide="lock" id="lock-icon-admin" class="w-3.5 h-3.5"></i>
+                            <span>Admin</span>
+                        </button>
+                    </nav>
+
+                    <button id="staff-logout-btn" onclick="logoutStaffSession()" title="Keluar Sesi Staf" class="hidden px-3 py-2 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-800/60 text-xs font-bold transition items-center gap-1">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Keluar</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Application Viewport -->
+        <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 pb-16">
+
+            <!-- ========================================================= -->
+            <!-- 1. TAMPILAN PELANGGAN (CUSTOMER VIEW)                      -->
+            <!-- ========================================================= -->
+            <section id="view-customer" class="space-y-6">
+                <div id="customer-login-box" class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm max-w-xl mx-auto">
+                    <div class="text-center mb-6">
+                        <span class="inline-block px-3 py-1 rounded-full bg-oat-100 text-caramel-600 text-xs font-bold uppercase tracking-wider mb-2">Kartu Member Digital</span>
+                        <h2 class="font-serif text-2xl font-bold text-espresso-900">Lihat Kartu NORTHMAN Anda</h2>
+                        <p class="text-sm text-espresso-700 mt-1">Masuk menggunakan <strong>Nomor WhatsApp</strong>, <strong>Nama</strong>, atau <strong>Kode Kartu</strong> Anda.</p>
+                    </div>
+
+                    <form onsubmit="handleCustomerAuth(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-espresso-700 mb-1.5">Nomor WhatsApp / Nama / Kode Kartu</label>
+                            <input type="text" id="cust-input-identifier" required placeholder="Contoh: 081234567890, Budi Santoso, atau NM-1001" class="w-full px-4 py-3 rounded-xl bg-oat-50 border border-oat-200 focus:outline-none focus:border-caramel-500 text-sm font-medium">
+                        </div>
+                        <button type="submit" class="w-full py-3.5 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-oat-50 font-semibold text-sm transition shadow-md flex items-center justify-center gap-2">
+                            <span>Lihat Kartu Saya</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <div id="customer-dashboard" class="hidden grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left Column -->
+                    <div class="lg:col-span-5 space-y-5">
+                        <div class="flex items-center justify-between bg-oat-100 px-4 py-2.5 rounded-xl border border-oat-200">
+                            <div class="flex items-center gap-2 text-xs font-semibold text-espresso-800">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>Kartu Member Aktif</span>
+                            </div>
+                            <button onclick="logoutCustomer()" class="text-xs font-bold text-caramel-600 hover:underline flex items-center gap-1">
+                                <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Keluar Kartu
+                            </button>
+                        </div>
+
+                        <div class="member-card-bg rounded-3xl p-6 text-oat-50 shadow-xl border border-espresso-700 relative overflow-hidden">
+                            <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-caramel-500/10 blur-xl pointer-events-none"></div>
+                            <div class="absolute -left-10 -bottom-10 w-36 h-36 rounded-full bg-caramel-500/10 blur-xl pointer-events-none"></div>
+
+                            <div class="flex justify-between items-start mb-6 relative z-10">
+                                <div>
+                                    <p class="font-serif text-xl font-bold tracking-widest text-oat-50">NORTHMAN</p>
+                                    <p class="text-[11px] uppercase tracking-[0.2em] text-caramel-400 font-semibold">Loyalty Privilege</p>
+                                </div>
+                                <span id="card-tier-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-caramel-500/20 text-caramel-400 border border-caramel-500/40">
+                                    Gold Member
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-4 bg-espresso-950/60 p-4 rounded-2xl border border-espresso-700/80 backdrop-blur-sm relative z-10">
+                                <div id="member-qrcode" class="bg-white p-2 rounded-xl shrink-0"></div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-xs text-oat-300">Nama Pemegang Kartu</p>
+                                    <h3 id="card-member-name" class="text-lg font-bold text-white truncate">-</h3>
+                                    <p id="card-member-id" class="font-mono text-xs text-caramel-400 font-semibold mt-0.5">-</p>
+                                    <p id="card-member-phone" class="text-xs text-oat-300 mt-1">-</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-5 pt-4 border-t border-espresso-700/70 flex items-center justify-between relative z-10">
+                                <div>
+                                    <p class="text-[11px] uppercase tracking-wider text-oat-300">Poin Terkumpul (Maks 400)</p>
+                                    <p class="text-2xl font-bold gold-gradient-text"><span id="card-member-points">0</span> <span class="text-xs font-normal text-oat-300">/ 400 pts</span></p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-[11px] uppercase tracking-wider text-oat-300">Tunjukkan ke Kasir</p>
+                                    <p class="text-xs font-medium text-oat-100 mt-0.5">Scan QR / Sebutkan Kode</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="active-voucher-card" class="hidden bg-gradient-to-r from-amber-500 to-caramel-600 rounded-2xl p-5 text-espresso-950 shadow-lg">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 rounded-md bg-espresso-950 text-caramel-400 text-[10px] font-bold uppercase tracking-wider mb-1.5">Voucher Siap Digunakan</span>
+                                    <h4 id="voucher-reward-name" class="font-bold text-lg leading-tight">-</h4>
+                                    <p class="text-xs font-medium text-espresso-900 mt-1">Tunjukkan kode ini ke kasir untuk klaim gratis.</p>
+                                </div>
+                                <div class="bg-white/95 px-3 py-2 rounded-xl text-center shadow-sm shrink-0">
+                                    <p class="text-[10px] font-bold text-espresso-700 uppercase">Kode Klaim</p>
+                                    <p id="voucher-code-display" class="font-mono font-extrabold text-base text-espresso-950 tracking-wider">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <div>
+                                    <h3 class="font-serif text-xl font-bold text-espresso-900">Kartu Stamp 2-Tahap NORTHMAN</h3>
+                                    <p class="text-xs text-espresso-700">Selesaikan 10 stamp pertama & ke-2 untuk 2 minuman gratis berturut-turut!</p>
+                                </div>
+                                <div class="px-3.5 py-1.5 rounded-xl bg-oat-100 border border-oat-200 text-sm font-bold text-espresso-900">
+                                    <span id="current-stamps-count" class="text-caramel-600 text-lg">0</span> / <span id="max-stamps-count">20</span> Stamp
+                                </div>
+                            </div>
+
+                            <div id="stamp-grid-container" class="space-y-4 my-5"></div>
+
+                            <div class="w-full bg-oat-100 h-2.5 rounded-full overflow-hidden mb-3">
+                                <div id="stamp-progress-bar" class="bg-gradient-to-r from-caramel-400 to-caramel-600 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                                <span id="stamp-status-message" class="font-medium text-espresso-700">Beli kopi favoritmu untuk menambah stamp!</span>
+                                <div id="stamp-claim-actions" class="flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                <div>
+                                    <h3 class="font-serif text-lg font-bold text-espresso-900">Katalog Penukaran Poin (Maks. 400 Poin)</h3>
+                                    <p class="text-xs text-espresso-700">Kumpulkan hingga 400 poin untuk menukarkan hadiah spesial NORTHMAN</p>
+                                </div>
+                                <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-oat-100 border border-oat-200 text-espresso-900">
+                                    Poin Anda: <span id="catalog-user-points" class="text-caramel-600 text-sm">0</span> / 400 pts
+                                </span>
+                            </div>
+
+                            <div class="mb-5 p-4 rounded-2xl bg-oat-50 border border-oat-200">
+                                <div class="flex justify-between text-[11px] font-bold text-espresso-800 mb-2">
+                                    <span>0 pts</span>
+                                    <span class="text-caramel-600">100: Donat</span>
+                                    <span class="text-caramel-600">250: Northman L</span>
+                                    <span class="text-emerald-700">400: Northman & Donat</span>
+                                </div>
+                                <div class="w-full bg-oat-200 h-3 rounded-full overflow-hidden relative">
+                                    <div id="points-progress-bar" class="bg-gradient-to-r from-amber-400 via-caramel-500 to-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <p id="points-milestone-hint" class="text-[11px] text-espresso-700 font-medium mt-2">
+                                    Kumpulkan poin dari setiap transaksi (maksimal saldo poin 400 pts).
+                                </p>
+                            </div>
+
+                            <div id="customer-rewards-list" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <h3 class="font-serif text-lg font-bold text-espresso-900 mb-3">Riwayat Transaksi & Stamp</h3>
+                            <div id="customer-history-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- 2. TAMPILAN KASIR (CASHIER POS VIEW - TERPROTEKSI LOGIN)  -->
+            <!-- ========================================================= -->
+            <section id="view-cashier" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-5 space-y-5">
+                        <div class="bg-white rounded-2xl border border-oat-200 p-5 shadow-sm">
+                            <div class="flex items-center justify-between gap-2 mb-4">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-xl bg-espresso-900 text-caramel-400 flex items-center justify-center">
+                                        <i data-lucide="qr-code" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="font-serif text-lg font-bold text-espresso-900">Scan / Cari Pelanggan</h2>
+                                        <p class="text-xs text-espresso-700">Ketik Kode Kartu, No. WhatsApp, atau Nama</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="relative mb-3">
+                                <i data-lucide="search" class="w-4 h-4 text-espresso-700 absolute left-3.5 top-3.5"></i>
+                                <input type="text" id="cashier-search-input" oninput="filterCashierMembers()" placeholder="Cari NM-1001, Budi, 0812..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-oat-50 border border-oat-200 focus:outline-none focus:border-caramel-500 text-sm font-medium">
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                                <button onclick="openRegisterMemberModal()" class="py-2.5 px-3 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-caramel-400 text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm">
+                                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                    <span>+ Pelanggan Baru</span>
+                                </button>
+                                <button onclick="simulateQrScan()" class="py-2.5 px-3 rounded-xl bg-oat-100 hover:bg-oat-200 text-espresso-900 border border-oat-300 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                                    <i data-lucide="camera" class="w-4 h-4 text-caramel-600"></i>
+                                    <span>Simulasi Scan QR</span>
+                                </button>
+                            </div>
+
+                            <div>
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-espresso-700 mb-2">Daftar Member Aktif (<span id="cashier-member-count">0</span>)</p>
+                                <div id="cashier-member-list" class="space-y-2 max-h-[360px] overflow-y-auto pr-1"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 space-y-5">
+                        <div id="cashier-empty-state" class="bg-white rounded-2xl border border-oat-200 p-10 text-center shadow-sm">
+                            <div class="w-16 h-16 rounded-2xl bg-oat-100 text-caramel-600 flex items-center justify-center mx-auto mb-4">
+                                <i data-lucide="user-plus" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="font-serif text-xl font-bold text-espresso-900">Pilih Pelanggan Terlebih Dahulu</h3>
+                            <p class="text-sm text-espresso-700 max-w-md mx-auto mt-1">Klik salah satu nama pelanggan di sebelah kiri atau klik <strong>+ Pelanggan Baru</strong> untuk mendaftarkan member.</p>
+                        </div>
+
+                        <div id="cashier-terminal" class="hidden space-y-5">
+                            <div class="bg-espresso-900 text-oat-50 rounded-2xl p-6 shadow-md border border-espresso-700">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span id="pos-member-id" class="font-mono text-xs font-bold px-2.5 py-0.5 rounded bg-caramel-500 text-espresso-950">-</span>
+                                            <span id="pos-member-tier" class="text-xs text-caramel-400 font-semibold">-</span>
+                                        </div>
+                                        <h3 id="pos-member-name" class="text-2xl font-bold text-white mt-1">-</h3>
+                                        <p id="pos-member-phone" class="text-xs text-oat-300 mt-0.5">-</p>
+                                    </div>
+
+                                    <div class="flex items-center gap-4 bg-espresso-950/70 px-4 py-3 rounded-xl border border-espresso-700">
+                                        <div class="text-center pr-4 border-r border-espresso-700">
+                                            <p class="text-[10px] uppercase tracking-wider text-oat-300">Siklus Stamp</p>
+                                            <p class="text-2xl font-extrabold text-caramel-400"><span id="pos-member-stamps">0</span><span class="text-sm text-oat-300">/20</span></p>
+                                            <p id="pos-member-stage-badge" class="text-[10px] font-semibold text-emerald-400 mt-0.5">Tahap 1</p>
+                                        </div>
+                                        <div class="text-center">
+                                            <p class="text-[10px] uppercase tracking-wider text-oat-300">Saldo Poin</p>
+                                            <p id="pos-member-points" class="text-2xl font-extrabold text-white">0</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="pos-voucher-alert" class="hidden mt-4 p-3.5 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <i data-lucide="ticket" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+                                        <div>
+                                            <p class="text-xs font-bold text-emerald-300 uppercase">Voucher Hadiah Aktif: <span id="pos-voucher-code" class="font-mono underline"></span></p>
+                                            <p id="pos-voucher-title" class="text-sm font-semibold text-white">-</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="cashierVerifyVoucher()" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-espresso-950 font-bold text-xs shadow transition">
+                                        Konfirmasi & Serahkan Hadiah
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm space-y-5">
+                                <div>
+                                    <h4 class="font-serif text-lg font-bold text-espresso-900">Tambah Poin Transaksi</h4>
+                                    <p class="text-xs text-espresso-700">Pengingat WhatsApp otomatis terkirim saat transaksi diproses (Saldo poin maks. 400 pts)</p>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button onclick="cashierAddStamp(0, 10000, '1x Transaksi Rp 10rb')" class="p-4 rounded-xl bg-oat-50 hover:bg-caramel-500 hover:text-espresso-950 border border-oat-200 hover:border-caramel-500 transition text-left group">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="font-extrabold text-lg text-caramel-600 group-hover:text-espresso-950">+10 Poin</span>
+                                            <i data-lucide="sparkles" class="w-4 h-4 text-espresso-700 group-hover:text-espresso-950"></i>
+                                        </div>
+                                        <p class="text-xs font-semibold">Transaksi Rp 10.000</p>
+                                        <p class="text-[11px] opacity-75 mt-0.5">+10 Poin (Rp 10rb)</p>
+                                    </button>
+
+                                    <button onclick="cashierQuickRedeemStage()" id="pos-btn-redeem-stage" class="p-4 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-900 hover:text-white border border-emerald-200 transition text-left group">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="font-extrabold text-lg">Klaim Free</span>
+                                            <i data-lucide="gift" class="w-4 h-4"></i>
+                                        </div>
+                                        <p id="pos-redeem-label" class="text-xs font-semibold">Reward Tahap 1 / 2</p>
+                                        <p id="pos-redeem-sublabel" class="text-[11px] opacity-80 mt-0.5">Cek kelayakan stamp</p>
+                                    </button>
+                                </div>
+
+                                <form onsubmit="handleCustomPosTransaction(event)" class="pt-4 border-t border-oat-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                                    <div class="sm:col-span-5">
+                                        <label class="block text-[11px] font-bold uppercase text-espresso-700 mb-1">Total Belanja (Rp)</label>
+                                        <input type="number" id="pos-custom-amount" min="1000" step="1000" placeholder="Contoh: 85000" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-semibold focus:outline-none focus:border-caramel-500">
+                                    </div>
+                                    <div class="sm:col-span-3">
+                                        <label class="block text-[11px] font-bold uppercase text-espresso-700 mb-1">Jumlah Stamp</label>
+                                        <input type="number" id="pos-custom-stamps" min="0" max="20" value="0" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-semibold focus:outline-none focus:border-caramel-500">
+                                    </div>
+                                    <div class="sm:col-span-4">
+                                        <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-oat-50 font-bold text-sm transition shadow">
+                                            Proses Transaksi
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="bg-white rounded-2xl border border-oat-200 p-5 shadow-sm">
+                                <h4 class="font-serif text-base font-bold text-espresso-900 mb-3">Aktivitas Kasir Real-Time</h4>
+                                <div id="cashier-feed-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- 3. TAMPILAN ADMIN (OWNER / MANAGER - TERPROTEKSI LOGIN)    -->
+            <!-- ========================================================= -->
+            <section id="view-admin" class="hidden space-y-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-2xl border border-oat-200 shadow-sm">
+                        <div class="flex items-center justify-between text-espresso-700 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">Total Member</span>
+                            <i data-lucide="users" class="w-4 h-4 text-caramel-600"></i>
+                        </div>
+                        <p id="kpi-total-members" class="text-2xl sm:text-3xl font-extrabold text-espresso-900">0</p>
+                        <p class="text-xs text-emerald-600 font-medium mt-1">Aktif terdaftar</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-oat-200 shadow-sm">
+                        <div class="flex items-center justify-between text-espresso-700 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">Stamp Diterbitkan</span>
+                            <i data-lucide="stamp" class="w-4 h-4 text-caramel-600"></i>
+                        </div>
+                        <p id="kpi-total-stamps" class="text-2xl sm:text-3xl font-extrabold text-espresso-900">0</p>
+                        <p class="text-xs text-espresso-700 mt-1">Akumulasi seluruh cup</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-oat-200 shadow-sm">
+                        <div class="flex items-center justify-between text-espresso-700 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">Hadiah Ditukar</span>
+                            <i data-lucide="gift" class="w-4 h-4 text-caramel-600"></i>
+                        </div>
+                        <p id="kpi-total-redeemed" class="text-2xl sm:text-3xl font-extrabold text-espresso-900">0</p>
+                        <p class="text-xs text-espresso-700 mt-1">Total klaim berhasil</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-oat-200 shadow-sm">
+                        <div class="flex items-center justify-between text-espresso-700 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">Katalog Aktif</span>
+                            <i data-lucide="sparkles" class="w-4 h-4 text-caramel-600"></i>
+                        </div>
+                        <p id="kpi-active-rewards" class="text-2xl sm:text-3xl font-extrabold text-espresso-900">0</p>
+                        <p class="text-xs text-espresso-700 mt-1">Pilihan reward member</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <h3 class="font-serif text-lg font-bold text-espresso-900 mb-1">Skema Reward 2-Tahap & PIN Staf</h3>
+                            <p class="text-xs text-espresso-700 mb-4">Aturan aktif program loyalitas & akses keamanan NORTHMAN</p>
+
+                            <div class="p-3.5 rounded-xl bg-oat-50 border border-oat-200 space-y-2 mb-4 text-xs">
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 rounded bg-espresso-900 text-caramel-400 font-bold text-[10px] shrink-0">10 Stamp 1</span>
+                                    <span class="text-espresso-900 font-semibold">Gratis <strong>Northman Kopsu</strong> atau <strong>North Women</strong></span>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    <span class="px-2 py-0.5 rounded bg-caramel-500 text-espresso-950 font-bold text-[10px] shrink-0">10 Stamp 2</span>
+                                    <span class="text-espresso-900 font-semibold">Gratis <strong>North Americano</strong> atau <strong>North Lychee Tea</strong> (Reset ke 0)</span>
+                                </div>
+                            </div>
+
+                            <form onsubmit="saveLoyaltySettings(event)" class="space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-espresso-800 mb-1">Poin per Rp 10.000</label>
+                                        <input type="number" id="admin-set-points-rate" min="1" max="100" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-semibold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-espresso-800 mb-1">Bonus Stamp Baru</label>
+                                        <input type="number" id="admin-set-welcome" min="0" max="5" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-semibold">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-oat-200">
+                                    <div>
+                                        <label class="block text-xs font-bold text-espresso-800 mb-1">PIN Kasir POS</label>
+                                        <input type="text" id="admin-set-cashier-pin" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-mono font-semibold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-espresso-800 mb-1">PIN Admin</label>
+                                        <input type="text" id="admin-set-admin-pin" required class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-mono font-semibold">
+                                    </div>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-oat-50 font-bold text-sm transition shadow">
+                                    Simpan Pengaturan
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="font-serif text-lg font-bold text-espresso-900">Katalog Penukaran Poin (Maks 400)</h3>
+                                <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-caramel-500/20 text-caramel-600">Aktif</span>
+                            </div>
+                            <p class="text-xs text-espresso-700 mb-4">Daftar tingkatan penukaran poin NORTHMAN (maksimal 400 poin)</p>
+
+                            <form onsubmit="addNewReward(event)" class="space-y-3 mb-5 pb-5 border-b border-oat-200">
+                                <input type="text" id="new-reward-title" placeholder="Nama Hadiah (misal: Free Donat)" required class="w-full px-3.5 py-2 rounded-xl bg-oat-50 border border-oat-200 text-sm">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="px-3 py-2 rounded-xl bg-oat-100 border border-oat-200 text-xs font-bold text-espresso-800 flex items-center">
+                                        Tukar Poin (Maks 400)
+                                    </div>
+                                    <input type="number" id="new-reward-cost" min="10" max="400" placeholder="Poin (100 - 400)" required class="px-3 py-2 rounded-xl bg-oat-50 border border-oat-200 text-sm">
+                                </div>
+                                <button type="submit" class="w-full py-2 rounded-xl bg-caramel-500 hover:bg-caramel-600 text-espresso-950 font-bold text-xs transition">
+                                    + Tambah Item Poin
+                                </button>
+                            </form>
+
+                            <div id="admin-rewards-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7 space-y-6">
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <div>
+                                    <h3 class="font-serif text-lg font-bold text-espresso-900">Manajemen Pelanggan</h3>
+                                    <p class="text-xs text-espresso-700">Pantau saldo stamp & poin seluruh member</p>
+                                </div>
+                                <button onclick="resetDemoDatabase()" class="px-3 py-1.5 rounded-lg bg-oat-100 hover:bg-oat-200 text-espresso-800 text-xs font-semibold border border-oat-300 transition">
+                                    Reset Data Demo
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="border-b border-oat-200 text-[11px] font-bold uppercase text-espresso-700">
+                                            <th class="py-2.5 px-2">Member</th>
+                                            <th class="py-2.5 px-2">Tier</th>
+                                            <th class="py-2.5 px-2 text-center">Stamp</th>
+                                            <th class="py-2.5 px-2 text-right">Poin</th>
+                                            <th class="py-2.5 px-2 text-right">Aksi Cepat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-members-tbody" class="divide-y divide-oat-100 text-sm"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-oat-200 p-6 shadow-sm">
+                            <h3 class="font-serif text-lg font-bold text-espresso-900 mb-3">Log Audit Transaksi Kedai (Live)</h3>
+                            <div id="admin-audit-log" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'NORTHMAN_LOYALTY_VERCEL_V1';
+        let currentRole = 'customer';
+        let activeCustomerId = null;
+        let selectedPosMemberId = null;
+
+        let staffSession = {
+            cashier: false,
+            admin: false
+        };
+        let pendingStaffRole = null;
+
+        function getDefaultState() {
+            const now = Date.now();
+            return {
+                members: [
+                    { id: 'NM-1001', name: 'Budi Santoso', phone: '081234567890', tier: 'Gold', stamps: 10, stage1Claimed: false, points: 250, totalStampsEarned: 30, activeVoucher: null, createdAt: now - 86400000 * 10 },
+                    { id: 'NM-1002', name: 'Siti Aminah', phone: '081987654321', tier: 'Reserve', stamps: 20, stage1Claimed: true, points: 400, totalStampsEarned: 60, activeVoucher: null, createdAt: now - 86400000 * 25 },
+                    { id: 'NM-1003', name: 'Reza Pratama', phone: '085611223344', tier: 'Regular', stamps: 6, stage1Claimed: false, points: 100, totalStampsEarned: 6, activeVoucher: null, createdAt: now - 86400000 * 2 }
+                ],
+                rewards: [
+                    { id: 'REW-100', title: 'Free Donat', type: 'points', cost: 100, desc: '1x Donat klasik pilihan di etalase NORTHMAN' },
+                    { id: 'REW-250', title: 'Free Northman Large', type: 'points', cost: 250, desc: '1x Minuman signature NORTHMAN ukuran Large' },
+                    { id: 'REW-400', title: 'Free Northman dan Donat', type: 'points', cost: 400, desc: 'Paket komplit 1x Northman Coffee + 1x Donat spesial' }
+                ],
+                logs: [
+                    { id: 'LOG-1', memberId: 'NM-1001', memberName: 'Budi Santoso', action: '+10 Poin (10/20 Stamp & 250 Poin)', stampsDelta: 0, pointsDelta: 10, timestamp: now - 3600000 },
+                    { id: 'LOG-2', memberId: 'NM-1002', memberName: 'Siti Aminah', action: '+10 Poin (20/20 Stamp & Maksimal 400 Poin)', stampsDelta: 0, pointsDelta: 10, timestamp: now - 1800000 }
+                ],
+                settings: {
+                    targetStamps: 20,
+                    pointsPer10k: 10,
+                    welcomeStamps: 1,
+                    totalRedeemedAllTime: 14,
+                    cashierPin: 'KASIR123',
+                    adminPin: 'ADMIN123'
+                }
+            };
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+            } catch (e) {}
+            const initial = getDefaultState();
+            saveState(initial);
+            return initial;
+        }
+
+        function saveState(nextState) {
+            state = nextState;
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        let state = loadState();
+        if (!selectedPosMemberId && state.members.length > 0) {
+            selectedPosMemberId = state.members[0].id;
+        }
+
+        // --- RESPONSIVE VIEWPORT SWITCHER ---
+        function setViewportMode(mode) {
+            const frame = document.getElementById('device-frame');
+            frame.classList.remove('mode-mobile', 'mode-tablet', 'mode-laptop');
+            frame.classList.add(`mode-${mode}`);
+
+            ['mobile', 'tablet', 'laptop'].forEach(m => {
+                const btn = document.getElementById(`vp-btn-${m}`);
+                if (m === mode) {
+                    btn.classList.add('bg-caramel-500', 'text-espresso-950');
+                    btn.classList.remove('text-oat-300', 'hover:text-white');
+                } else {
+                    btn.classList.remove('bg-caramel-500', 'text-espresso-950');
+                    btn.classList.add('text-oat-300', 'hover:text-white');
+                }
+            });
+        }
+
+        // --- WHATSAPP SERVERLESS HELPER (/api/wa) ---
+        function composeWaMessage(member, actionText) {
+            const st = Math.min(20, Number(member.stamps || 0));
+            const pts = Math.min(400, Number(member.points || 0));
+            const s1Claimed = Boolean(member.stage1Claimed);
+            const lines = [
+                `Halo Kak *${member.name}* (${member.id}), terima kasih telah bertransaksi di *NORTHMAN*!`,
+                actionText ? `Aktivitas: *${actionText}*` : '',
+                ``,
+                `📊 *Update Saldo Loyalty Anda:*`,
+                `• Stamp: *${st}/20*`,
+                `• Poin: *${pts}/400 pts*`
+            ];
+            if (member.activeVoucher) {
+                lines.push(``);
+                lines.push(`🎟️ *Voucher Aktif:* *${member.activeVoucher.title}* (Kode: *${member.activeVoucher.code}*)`);
+            } else if (!s1Claimed && st >= 10) {
+                lines.push(``);
+                lines.push(`🎉 *10 Stamp Pertama tercapai!* Silakan klaim *Free Northman Kopsu / North Women*.`);
+            } else if (s1Claimed && st >= 20) {
+                lines.push(``);
+                lines.push(`🎉 *20 Stamp tercapai!* Silakan klaim *Free North Americano / North Lychee Tea*.`);
+            }
+            return lines.filter(Boolean).join('\n');
+        }
+
+        async function triggerWhatsAppNotification(member, actionText) {
+            try {
+                const res = await fetch('/api/wa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: member.phone,
+                        message: composeWaMessage(member, actionText)
+                    })
+                });
+                if (!res.ok) return 'WA Simulasi';
+                const data = await res.json();
+                return data.status || 'WA Terproses';
+            } catch (e) {
+                return 'WA Simulasi';
+            }
+        }
+
+        // --- STAFF LOGIN & ROLE PROTECTION ---
+        function updateStaffHeaderIndicators() {
+            const logoutBtn = document.getElementById('staff-logout-btn');
+            if (staffSession.cashier || staffSession.admin) {
+                logoutBtn.classList.remove('hidden');
+                logoutBtn.classList.add('inline-flex');
+            } else {
+                logoutBtn.classList.add('hidden');
+                logoutBtn.classList.remove('inline-flex');
+            }
+        }
+
+        function requestStaffRole(role) {
+            if (staffSession[role]) {
+                switchRole(role, false);
+                return;
+            }
+            pendingStaffRole = role;
+            const isCashier = role === 'cashier';
+            document.getElementById('staff-login-title').textContent = isCashier ? 'Login Kasir POS' : 'Login Admin';
+            document.getElementById('staff-login-subtitle').textContent = isCashier
+                ? 'Masukkan PIN Kasir untuk mengakses terminal POS'
+                : 'Masukkan PIN Admin untuk mengakses dashboard';
+            document.getElementById('staff-pin-hint').textContent = isCashier
+                ? `PIN Default: ${state.settings.cashierPin || 'KASIR123'}`
+                : `PIN Default: ${state.settings.adminPin || 'ADMIN123'}`;
+            document.getElementById('staff-pin-input').value = '';
+
+            const modal = document.getElementById('staff-login-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('staff-pin-input').focus(), 100);
+            lucide.createIcons();
+        }
+
+        function closeStaffLoginModal() {
+            pendingStaffRole = null;
+            const modal = document.getElementById('staff-login-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleStaffLoginSubmit(e) {
+            e.preventDefault();
+            if (!pendingStaffRole) return;
+            const roleToLogin = pendingStaffRole;
+            const pin = document.getElementById('staff-pin-input').value.trim();
+            const expectedPin = roleToLogin === 'cashier'
+                ? (state.settings.cashierPin || 'KASIR123')
+                : (state.settings.adminPin || 'ADMIN123');
+
+            if (pin === expectedPin) {
+                staffSession[roleToLogin] = true;
+                closeStaffLoginModal();
+                updateStaffHeaderIndicators();
+                switchRole(roleToLogin, false);
+                showToast(roleToLogin === 'cashier' ? 'Berhasil login sebagai Kasir POS.' : 'Berhasil login sebagai Admin.', 'success');
+            } else {
+                showToast('PIN salah. Silakan coba lagi.', 'error');
+            }
+        }
+
+        function logoutStaffSession() {
+            staffSession.cashier = false;
+            staffSession.admin = false;
+            updateStaffHeaderIndicators();
+            switchRole('customer', false);
+            showToast('Sesi staf telah dikunci.', 'success');
+        }
+
+        function switchRole(role, bypassGuard = false) {
+            if ((role === 'cashier' || role === 'admin') && !staffSession[role] && !bypassGuard) {
+                requestStaffRole(role);
+                return;
+            }
+            if ((role === 'cashier' || role === 'admin') && !staffSession[role]) {
+                role = 'customer';
+            }
+
+            currentRole = role;
+            const views = ['customer', 'cashier', 'admin'];
+            views.forEach(v => {
+                const sec = document.getElementById(`view-${v}`);
+                const tab = document.getElementById(`tab-${v}`);
+                if (v === role) {
+                    sec.classList.remove('hidden');
+                    tab.classList.add('bg-caramel-500', 'text-espresso-950', 'shadow');
+                    tab.classList.remove('text-oat-300', 'hover:text-white');
+                } else {
+                    sec.classList.add('hidden');
+                    tab.classList.remove('bg-caramel-500', 'text-espresso-950', 'shadow');
+                    tab.classList.add('text-oat-300', 'hover:text-white');
+                }
+            });
+            renderAllViews();
+            lucide.createIcons();
+        }
+
+        function renderAllViews() {
+            renderCustomerView();
+            if (staffSession.cashier) renderCashierView();
+            if (staffSession.admin) renderAdminView();
+            lucide.createIcons();
+        }
+
+        // --- REGISTER NEW MEMBER (CASHIER / STAFF) ---
+        function openRegisterMemberModal() {
+            if (!staffSession.cashier && !staffSession.admin) return;
+            document.getElementById('modal-title').textContent = "Daftarkan Pelanggan Baru";
+            document.getElementById('modal-message').innerHTML = `
+                <form id="staff-register-form" onsubmit="submitNewMember(event)" class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-espresso-800 mb-1">Nama Pelanggan</label>
+                        <input type="text" id="reg-member-name" required placeholder="Contoh: Andi Wijaya" class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-medium focus:outline-none focus:border-caramel-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-espresso-800 mb-1">Nomor WhatsApp</label>
+                        <input type="tel" id="reg-member-phone" required placeholder="Contoh: 081234567899" class="w-full px-3.5 py-2.5 rounded-xl bg-oat-50 border border-oat-200 text-sm font-medium focus:outline-none focus:border-caramel-500">
+                    </div>
+                    <p class="text-[11px] text-espresso-700 bg-oat-50 p-2.5 rounded-lg border border-oat-200">
+                        Bonus pendaftaran: <strong>+${state.settings.welcomeStamps ?? 1} Stamp</strong> otomatis & notifikasi WhatsApp terkirim ke pelanggan.
+                    </p>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-oat-100 text-espresso-800 text-xs font-bold">Batal</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-espresso-900 text-oat-50 text-xs font-bold shadow">Simpan Member</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('modal-actions').innerHTML = '';
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('reg-member-name').focus(), 100);
+        }
+
+        async function submitNewMember(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-member-name').value.trim();
+            const rawPhone = document.getElementById('reg-member-phone').value.trim();
+            const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+            if (!name || cleanPhone.length < 8) {
+                showToast("Nama atau nomor WhatsApp tidak valid.", "error");
+                return;
+            }
+
+            const exists = state.members.find(m => normalizePhone(m.phone) === cleanPhone);
+            if (exists) {
+                showToast(`Nomor WA sudah terdaftar atas nama ${exists.name} (${exists.id}).`, "error");
+                return;
+            }
+
+            const maxNum = state.members.reduce((max, m) => {
+                const match = String(m.id || '').match(/^NM-(\d+)$/i);
+                return match ? Math.max(max, parseInt(match[1], 10)) : max;
+            }, 1000);
+            const newId = `NM-${maxNum + 1}`;
+            const welcomeStamps = Number(state.settings.welcomeStamps ?? 1);
+
+            const newMember = {
+                id: newId,
+                name: name,
+                phone: cleanPhone,
+                tier: 'Regular',
+                stamps: welcomeStamps,
+                stage1Claimed: false,
+                points: 0,
+                totalStampsEarned: welcomeStamps,
+                activeVoucher: null,
+                createdAt: Date.now()
+            };
+
+            closeModal();
+            const waStatus = await triggerWhatsAppNotification(newMember, 'Pendaftaran Member Baru NORTHMAN');
+
+            state.members.unshift(newMember);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: newId,
+                memberName: name,
+                action: `Member Baru Terdaftar (+${welcomeStamps} Welcome Stamp) • ${waStatus}`,
+                stampsDelta: welcomeStamps,
+                pointsDelta: 0,
+                timestamp: Date.now()
+            });
+            saveState(state);
+
+            selectedPosMemberId = newId;
+            renderAllViews();
+            showToast(`Member ${name} (${newId}) berhasil ditambahkan! [${waStatus}]`, "success");
+        }
+
+        // --- CUSTOMER VIEW ---
+        function renderCustomerView() {
+            const loginBox = document.getElementById('customer-login-box');
+            const dashboard = document.getElementById('customer-dashboard');
+
+            const member = state.members.find(m => m.id === activeCustomerId);
+            if (!member) {
+                loginBox.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+                dashboard.classList.remove('grid');
+                return;
+            }
+
+            loginBox.classList.add('hidden');
+            dashboard.classList.remove('hidden');
+            dashboard.classList.add('grid');
+
+            const cappedPoints = Math.min(400, member.points || 0);
+
+            document.getElementById('card-member-name').textContent = member.name;
+            document.getElementById('card-member-id').textContent = member.id;
+            document.getElementById('card-member-phone').textContent = member.phone;
+            document.getElementById('card-tier-badge').textContent = `${member.tier || 'Regular'} Member`;
+            document.getElementById('card-member-points').textContent = cappedPoints;
+            document.getElementById('catalog-user-points').textContent = cappedPoints;
+
+            const ptsPct = Math.min(100, Math.round((cappedPoints / 400) * 100));
+            document.getElementById('points-progress-bar').style.width = `${ptsPct}%`;
+            const ptsHint = document.getElementById('points-milestone-hint');
+            if (cappedPoints >= 400) {
+                ptsHint.textContent = "Poin maksimal tercapai (400/400 pts)! Anda bisa klaim Free Northman dan Donat sekarang.";
+                ptsHint.className = "text-[11px] text-emerald-700 font-bold mt-2";
+            } else if (cappedPoints >= 250) {
+                ptsHint.textContent = `Anda bisa klaim Free Northman Large (250 pts) atau kumpulkan ${400 - cappedPoints} pts lagi untuk Free Northman dan Donat!`;
+                ptsHint.className = "text-[11px] text-caramel-600 font-semibold mt-2";
+            } else if (cappedPoints >= 100) {
+                ptsHint.textContent = `Anda bisa klaim Free Donat (100 pts) atau kumpulkan ${250 - cappedPoints} pts lagi untuk Free Northman Large!`;
+                ptsHint.className = "text-[11px] text-caramel-600 font-semibold mt-2";
+            } else {
+                ptsHint.textContent = `Kurang ${100 - cappedPoints} poin lagi untuk membuka reward pertama: Free Donat (100 pts).`;
+                ptsHint.className = "text-[11px] text-espresso-700 font-medium mt-2";
+            }
+
+            const qrContainer = document.getElementById('member-qrcode');
+            if (qrContainer.dataset.lastId !== member.id) {
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: `NORTHMAN:${member.id}`,
+                    width: 72,
+                    height: 72,
+                    colorDark: "#120D0A",
+                    colorLight: "#FFFFFF"
+                });
+                qrContainer.dataset.lastId = member.id;
+            }
+
+            const voucherCard = document.getElementById('active-voucher-card');
+            if (member.activeVoucher) {
+                voucherCard.classList.remove('hidden');
+                document.getElementById('voucher-reward-name').textContent = member.activeVoucher.title;
+                document.getElementById('voucher-code-display').textContent = member.activeVoucher.code;
+            } else {
+                voucherCard.classList.add('hidden');
+            }
+
+            const currentStamps = Math.min(20, member.stamps || 0);
+            const stage1Claimed = Boolean(member.stage1Claimed);
+            document.getElementById('current-stamps-count').textContent = currentStamps;
+            document.getElementById('max-stamps-count').textContent = 20;
+
+            const pct = Math.min(100, Math.round((currentStamps / 20) * 100));
+            document.getElementById('stamp-progress-bar').style.width = `${pct}%`;
+
+            const renderStageRow = (startNum, endNum, title, rewardSubtitle, isClaimed, isUnlocked) => {
+                let cells = '';
+                for (let i = startNum; i <= endNum; i++) {
+                    const filled = i <= currentStamps;
+                    const isMilestone = i === endNum;
+                    if (filled) {
+                        cells += `
+                            <div class="aspect-square rounded-xl bg-gradient-to-br ${isMilestone ? 'from-emerald-500 to-emerald-700 text-white border-emerald-400' : 'from-caramel-400 to-caramel-600 text-espresso-950 border-caramel-400'} flex flex-col items-center justify-center shadow-sm stamp-animate border">
+                                <i data-lucide="${isMilestone ? 'gift' : 'coffee'}" class="w-5 h-5 stroke-[2.5]"></i>
+                                <span class="text-[10px] font-extrabold mt-0.5">#${i}</span>
+                            </div>
+                        `;
+                    } else {
+                        cells += `
+                            <div class="aspect-square rounded-xl bg-oat-50 border-2 border-dashed ${isMilestone ? 'border-caramel-400 text-caramel-600' : 'border-oat-300 text-oat-300'} flex flex-col items-center justify-center">
+                                <i data-lucide="${isMilestone ? 'gift' : 'coffee'}" class="w-4 h-4"></i>
+                                <span class="text-[10px] font-bold mt-0.5">${isMilestone ? 'FREE' : '#' + i}</span>
+                            </div>
+                        `;
+                    }
+                }
+
+                let badgeHtml = '';
+                if (isClaimed) {
+                    badgeHtml = `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Sudah Diklaim</span>`;
+                } else if (isUnlocked) {
+                    badgeHtml = `<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold animate-pulse">Siap Ditukar!</span>`;
+                } else {
+                    const stageProgress = Math.max(0, Math.min(10, currentStamps - (startNum - 1)));
+                    badgeHtml = `<span class="text-[11px] font-bold text-espresso-700">${stageProgress}/10 Stamp</span>`;
+                }
+
+                return `
+                    <div class="p-4 rounded-2xl border ${isUnlocked && !isClaimed ? 'border-emerald-400 bg-emerald-50/40' : 'border-oat-200 bg-oat-50/40'}">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div>
+                                <p class="text-xs font-extrabold uppercase tracking-wider text-espresso-900">${title}</p>
+                                <p class="text-xs text-caramel-600 font-bold">${rewardSubtitle}</p>
+                            </div>
+                            ${badgeHtml}
+                        </div>
+                        <div class="grid grid-cols-5 gap-2.5">${cells}</div>
+                    </div>
+                `;
+            };
+
+            const stage1Unlocked = currentStamps >= 10;
+            const stage2Unlocked = currentStamps >= 20;
+
+            document.getElementById('stamp-grid-container').innerHTML =
+                renderStageRow(1, 10, '10 Stamp Pertama (Tahap 1)', 'Free Northman Kopsu / North Women', stage1Claimed, stage1Unlocked) +
+                renderStageRow(11, 20, '10 Stamp Kedua (Tahap 2)', 'Free North Americano / North Lychee Tea', false, stage2Unlocked);
+
+            const claimActions = document.getElementById('stamp-claim-actions');
+            const statusMsg = document.getElementById('stamp-status-message');
+            claimActions.innerHTML = '';
+
+            if (member.activeVoucher) {
+                statusMsg.textContent = "Tunjukkan kode voucher di kartu sebelah kiri kepada kasir sebelum menukar hadiah berikutnya.";
+                statusMsg.className = "font-semibold text-amber-700";
+            } else if (stage1Unlocked && !stage1Claimed) {
+                statusMsg.textContent = "Selamat! 10 Stamp Pertama tercapai. Pilih minuman gratis Anda:";
+                statusMsg.className = "font-bold text-emerald-700";
+                claimActions.innerHTML = `
+                    <button onclick="openVariantClaimModal(1)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow transition flex items-center gap-1.5">
+                        <i data-lucide="gift" class="w-4 h-4"></i> Klaim Free Kopsu / North Women
+                    </button>
+                `;
+            } else if (stage2Unlocked && stage1Claimed) {
+                statusMsg.textContent = "Luar biasa! 20 Stamp tercapai. Pilih minuman gratis Tahap 2 (siklus akan reset ke 0 setelah diklaim):";
+                statusMsg.className = "font-bold text-emerald-700";
+                claimActions.innerHTML = `
+                    <button onclick="openVariantClaimModal(2)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow transition flex items-center gap-1.5">
+                        <i data-lucide="gift" class="w-4 h-4"></i> Klaim Free Americano / Lychee Tea
+                    </button>
+                `;
+            } else if (currentStamps < 10) {
+                statusMsg.textContent = `Kurang ${10 - currentStamps} stamp lagi untuk Free Northman Kopsu / North Women!`;
+                statusMsg.className = "font-medium text-espresso-700";
+            } else {
+                statusMsg.textContent = `Kurang ${20 - currentStamps} stamp lagi untuk Free North Americano / North Lychee Tea!`;
+                statusMsg.className = "font-medium text-espresso-700";
+            }
+
+            const pointsRewards = state.rewards.filter(r => r.type === 'points' && r.cost <= 400);
+            document.getElementById('customer-rewards-list').innerHTML = pointsRewards.map(r => {
+                const canRedeem = cappedPoints >= r.cost && !member.activeVoucher;
+                const isUnlocked = cappedPoints >= r.cost;
+                return `
+                    <div class="p-4 rounded-xl border ${isUnlocked ? 'border-caramel-400 bg-oat-50/80' : 'border-oat-200 bg-white'} flex flex-col justify-between gap-3">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-1.5">
+                                <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg ${isUnlocked ? 'bg-espresso-900 text-caramel-400' : 'bg-oat-200 text-espresso-800'}">
+                                    ${r.cost} Poin
+                                </span>
+                                ${isUnlocked ? '<span class="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5"><i data-lucide="check-circle" class="w-3 h-3"></i> Siap Klaim</span>' : `<span class="text-[10px] font-semibold text-espresso-700">-${r.cost - cappedPoints} pts</span>`}
+                            </div>
+                            <h4 class="font-bold text-sm text-espresso-900">${r.title}</h4>
+                            <p class="text-xs text-espresso-700 mt-1 leading-relaxed">${r.desc || 'Hadiah spesial member NORTHMAN'}</p>
+                        </div>
+                        <button onclick="redeemCatalogReward('${r.id}')" ${!canRedeem ? 'disabled' : ''} class="w-full py-2.5 rounded-xl text-xs font-bold transition ${canRedeem ? 'bg-caramel-500 hover:bg-caramel-600 text-espresso-950 shadow-sm' : 'bg-oat-100 text-oat-300 cursor-not-allowed'}">
+                            ${member.activeVoucher ? 'Selesaikan Voucher Aktif' : (isUnlocked ? `Tukar ${r.cost} Poin` : 'Poin Belum Cukup')}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const myLogs = state.logs.filter(l => l.memberId === member.id);
+            const historyEl = document.getElementById('customer-history-list');
+            if (myLogs.length === 0) {
+                historyEl.innerHTML = `<p class="text-xs text-espresso-700 text-center py-4">Belum ada riwayat transaksi.</p>`;
+            } else {
+                historyEl.innerHTML = myLogs.map(l => `
+                    <div class="flex items-center justify-between p-3 rounded-xl bg-oat-50 border border-oat-200/70 text-xs">
+                        <div>
+                            <p class="font-bold text-espresso-900">${l.action}</p>
+                            <p class="text-[11px] text-espresso-700">${formatTime(l.timestamp)}</p>
+                        </div>
+                        <div class="text-right font-mono font-bold">
+                            ${l.stampsDelta ? `<span class="${l.stampsDelta > 0 ? 'text-emerald-600' : 'text-amber-600'}">${l.stampsDelta > 0 ? '+' : ''}${l.stampsDelta} Stamp</span>` : ''}
+                            ${l.pointsDelta ? `<div class="text-[11px] text-espresso-700">${l.pointsDelta > 0 ? '+' : ''}${l.pointsDelta} pts</div>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function logoutCustomer() {
+            activeCustomerId = null;
+            document.getElementById('cust-input-identifier').value = '';
+            renderCustomerView();
+            lucide.createIcons();
+        }
+
+        function normalizePhone(str) {
+            return String(str || '').replace(/[^0-9]/g, '');
+        }
+
+        function handleCustomerAuth(e) {
+            e.preventDefault();
+            const raw = document.getElementById('cust-input-identifier').value.trim();
+            if (!raw) return;
+
+            const lower = raw.toLowerCase();
+            const digits = normalizePhone(raw);
+
+            const found = state.members.find(m => {
+                const matchId = String(m.id || '').toLowerCase() === lower;
+                const matchName = String(m.name || '').toLowerCase() === lower;
+                const mDigits = normalizePhone(m.phone);
+                const matchPhone = digits.length >= 6 && mDigits === digits;
+                return matchId || matchName || matchPhone;
+            });
+
+            if (!found) {
+                showToast("Kartu member tidak ditemukan. Periksa Nomor WhatsApp, Nama, atau Kode Kartu Anda.", "error");
+                return;
+            }
+
+            activeCustomerId = found.id;
+            renderCustomerView();
+            lucide.createIcons();
+            showToast(`Kartu member ${found.name} (${found.id}) ditampilkan.`, "success");
+        }
+
+        function openVariantClaimModal(stage) {
+            const member = state.members.find(m => m.id === activeCustomerId);
+            if (!member) return;
+
+            if (member.activeVoucher) {
+                showToast("Gunakan voucher aktif Anda terlebih dahulu di kasir.", "error");
+                return;
+            }
+
+            const title = stage === 1
+                ? "Pilih Minuman Gratis (10 Stamp Pertama)"
+                : "Pilih Minuman Gratis (10 Stamp Kedua)";
+
+            const options = stage === 1
+                ? [
+                    { name: "Free Northman Kopsu", desc: "Kopi susu gula aren signature NORTHMAN" },
+                    { name: "Free North Women", desc: "Signature creamy coffee spesial NORTHMAN" }
+                  ]
+                : [
+                    { name: "Free North Americano", desc: "100% Arabica House Blend (Hot / Iced)" },
+                    { name: "Free North Lychee Tea", desc: "Teh segar dengan buah leci pilihan" }
+                  ];
+
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = `
+                <p class="mb-3">Pilih salah satu varian menu gratis di bawah ini untuk membuat kode voucher kasir:</p>
+                <div class="space-y-2.5">
+                    ${options.map(opt => `
+                        <button type="button" onclick="confirmStageVoucher('${stage}', '${opt.name}')" class="w-full p-3.5 rounded-xl bg-oat-50 hover:bg-caramel-500/20 border border-oat-200 hover:border-caramel-500 text-left transition flex items-center justify-between">
+                            <div>
+                                <p class="font-bold text-espresso-900 text-sm">${opt.name}</p>
+                                <p class="text-xs text-espresso-700">${opt.desc}</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-espresso-900 text-oat-50 text-xs font-bold">Pilih</span>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('modal-actions').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-oat-100 text-espresso-800 text-xs font-bold">Batal</button>
+            `;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        async function confirmStageVoucher(stageStr, menuName) {
+            closeModal();
+            const stage = parseInt(stageStr, 10);
+            const member = state.members.find(m => m.id === activeCustomerId);
+            if (!member) return;
+
+            const voucherCode = `NM-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+            const stageLabel = stage === 1 ? "10 Stamp Pertama" : "10 Stamp Kedua";
+            const fullTitle = `${menuName} (${stageLabel})`;
+
+            member.activeVoucher = {
+                code: voucherCode,
+                title: fullTitle,
+                stage: stage,
+                createdAt: Date.now()
+            };
+
+            if (stage === 1) {
+                member.stage1Claimed = true;
+            } else if (stage === 2) {
+                member.stamps = Math.max(0, (member.stamps || 20) - 20);
+                member.stage1Claimed = false;
+            }
+
+            const waStatus = await triggerWhatsAppNotification(member, `Klaim Voucher ${stageLabel}: ${menuName}`);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `Klaim Voucher ${stageLabel}: ${menuName} (${voucherCode})${stage === 2 ? ' — Siklus Reset ke 0' : ''} • ${waStatus}`,
+                stampsDelta: stage === 2 ? -20 : 0,
+                pointsDelta: 0,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+            showToast(`Voucher ${voucherCode} (${menuName}) siap ditunjukkan ke kasir! [${waStatus}]`, "success");
+        }
+
+        async function redeemCatalogReward(rewardId) {
+            const member = state.members.find(m => m.id === activeCustomerId);
+            const reward = state.rewards.find(r => r.id === rewardId);
+            if (!member || !reward) return;
+
+            if (member.activeVoucher) {
+                showToast("Anda masih memiliki voucher aktif yang belum digunakan di kasir.", "error");
+                return;
+            }
+
+            const currentPts = Math.min(400, member.points || 0);
+            if (currentPts < reward.cost) {
+                showToast("Saldo poin belum mencukupi.", "error");
+                return;
+            }
+
+            const voucherCode = `NM-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+            member.points = Math.max(0, currentPts - reward.cost);
+            member.activeVoucher = {
+                code: voucherCode,
+                title: `${reward.title} (${reward.cost} Poin)`,
+                stage: 0,
+                createdAt: Date.now()
+            };
+
+            const waStatus = await triggerWhatsAppNotification(member, `Tukar ${reward.cost} Poin: ${reward.title}`);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `Tukar ${reward.cost} Poin: ${reward.title} (${voucherCode}) • ${waStatus}`,
+                stampsDelta: 0,
+                pointsDelta: -reward.cost,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+            showToast(`Voucher ${voucherCode} (${reward.title}) berhasil dibuat! [${waStatus}]`, "success");
+        }
+
+        // --- CASHIER POS VIEW ---
+        function renderCashierView() {
+            if (!staffSession.cashier) return;
+            filterCashierMembers();
+
+            const emptyState = document.getElementById('cashier-empty-state');
+            const terminal = document.getElementById('cashier-terminal');
+            const member = state.members.find(m => m.id === selectedPosMemberId);
+
+            if (!member) {
+                emptyState.classList.remove('hidden');
+                terminal.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                terminal.classList.remove('hidden');
+
+                const st = member.stamps || 0;
+                const s1Claimed = Boolean(member.stage1Claimed);
+                const cappedPts = Math.min(400, member.points || 0);
+
+                document.getElementById('pos-member-id').textContent = member.id;
+                document.getElementById('pos-member-tier').textContent = `${member.tier || 'Regular'} Member`;
+                document.getElementById('pos-member-name').textContent = member.name;
+                document.getElementById('pos-member-phone').textContent = member.phone;
+                document.getElementById('pos-member-stamps').textContent = st;
+                document.getElementById('pos-member-points').textContent = `${cappedPts}/400`;
+
+                const stageBadge = document.getElementById('pos-member-stage-badge');
+                const redeemBtn = document.getElementById('pos-btn-redeem-stage');
+                const redeemLabel = document.getElementById('pos-redeem-label');
+                const redeemSub = document.getElementById('pos-redeem-sublabel');
+
+                if (st >= 10 && !s1Claimed) {
+                    stageBadge.textContent = "Tahap 1 Siap Klaim!";
+                    redeemLabel.textContent = "Klaim Tahap 1";
+                    redeemSub.textContent = "Kopsu / North Women";
+                    redeemBtn.className = "p-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 transition text-left shadow-md";
+                } else if (st >= 20 && s1Claimed) {
+                    stageBadge.textContent = "Tahap 2 Siap Klaim!";
+                    redeemLabel.textContent = "Klaim Tahap 2";
+                    redeemSub.textContent = "Americano / Lychee Tea";
+                    redeemBtn.className = "p-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 transition text-left shadow-md";
+                } else if (st < 10) {
+                    stageBadge.textContent = "Menuju 10 Stamp 1";
+                    redeemLabel.textContent = "Reward Tahap 1";
+                    redeemSub.textContent = `Kurang ${10 - st} stamp`;
+                    redeemBtn.className = "p-4 rounded-xl bg-oat-50 text-espresso-700 border border-oat-200 transition text-left opacity-75";
+                } else {
+                    stageBadge.textContent = "Menuju 10 Stamp 2";
+                    redeemLabel.textContent = "Reward Tahap 2";
+                    redeemSub.textContent = `Kurang ${20 - st} stamp`;
+                    redeemBtn.className = "p-4 rounded-xl bg-oat-50 text-espresso-700 border border-oat-200 transition text-left opacity-75";
+                }
+
+                const voucherAlert = document.getElementById('pos-voucher-alert');
+                if (member.activeVoucher) {
+                    voucherAlert.classList.remove('hidden');
+                    document.getElementById('pos-voucher-code').textContent = member.activeVoucher.code;
+                    document.getElementById('pos-voucher-title').textContent = member.activeVoucher.title;
+                } else {
+                    voucherAlert.classList.add('hidden');
+                }
+            }
+
+            document.getElementById('cashier-feed-list').innerHTML = state.logs.slice(0, 10).map(l => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-oat-50 border border-oat-200/70 text-xs">
+                    <div>
+                        <span class="font-bold text-espresso-900">${l.memberName}</span>
+                        <span class="text-espresso-700"> — ${l.action}</span>
+                    </div>
+                    <span class="text-[11px] text-espresso-700 shrink-0 ml-2">${formatTime(l.timestamp)}</span>
+                </div>
+            `).join('');
+        }
+
+        function filterCashierMembers() {
+            const q = (document.getElementById('cashier-search-input').value || '').toLowerCase();
+            const filtered = state.members.filter(m =>
+                m.name.toLowerCase().includes(q) ||
+                m.id.toLowerCase().includes(q) ||
+                m.phone.includes(q)
+            );
+
+            document.getElementById('cashier-member-count').textContent = filtered.length;
+            document.getElementById('cashier-member-list').innerHTML = filtered.map(m => {
+                const isSelected = m.id === selectedPosMemberId;
+                const hasVoucher = Boolean(m.activeVoucher);
+                return `
+                    <button onclick="selectPosMember('${m.id}')" class="w-full p-3 rounded-xl border text-left transition flex items-center justify-between ${isSelected ? 'bg-espresso-900 text-oat-50 border-espresso-900 shadow' : 'bg-oat-50 hover:bg-oat-100 text-espresso-900 border-oat-200'}">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-[11px] font-bold ${isSelected ? 'text-caramel-400' : 'text-caramel-600'}">${m.id}</span>
+                                <span class="font-bold text-sm">${m.name}</span>
+                                ${hasVoucher ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-espresso-950 text-[9px] font-extrabold uppercase">Voucher</span>' : ''}
+                            </div>
+                            <p class="text-xs ${isSelected ? 'text-oat-300' : 'text-espresso-700'} mt-0.5">${m.phone}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-extrabold ${isSelected ? 'text-caramel-400' : 'text-espresso-900'}">${m.stamps || 0}/20</span>
+                            <p class="text-[10px] ${isSelected ? 'text-oat-300' : 'text-espresso-700'}">${(m.stamps >= 10 && !m.stage1Claimed) ? 'Free T1' : (m.stamps >= 20 ? 'Free T2' : 'Stamp')}</p>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectPosMember(id) {
+            selectedPosMemberId = id;
+            renderCashierView();
+            lucide.createIcons();
+        }
+
+        function simulateQrScan() {
+            if (state.members.length === 0) return;
+            const currentIndex = state.members.findIndex(m => m.id === selectedPosMemberId);
+            const nextMember = state.members[(currentIndex + 1) % state.members.length];
+            selectedPosMemberId = nextMember.id;
+            renderCashierView();
+            lucide.createIcons();
+            showToast(`QR Terbaca: ${nextMember.name} (${nextMember.id})`, "success");
+        }
+
+        async function cashierAddStamp(stampCount, amountRp, label) {
+            if (!staffSession.cashier || !selectedPosMemberId) return;
+            const member = state.members.find(m => m.id === selectedPosMemberId);
+            if (!member) return;
+
+            const rawPointsEarned = Math.floor((amountRp / 10000) * (state.settings.pointsPer10k || 10));
+            const currentStamps = member.stamps || 0;
+            const newStamps = Math.min(20, currentStamps + stampCount);
+            const actualAdded = newStamps - currentStamps;
+            const newTotalEarned = (member.totalStampsEarned || 0) + stampCount;
+
+            const currentPoints = Math.min(400, member.points || 0);
+            const newPoints = Math.min(400, currentPoints + rawPointsEarned);
+            const actualPointsAdded = newPoints - currentPoints;
+
+            let newTier = member.tier || 'Regular';
+            if (newTotalEarned >= 40) newTier = 'Reserve';
+            else if (newTotalEarned >= 15) newTier = 'Gold';
+
+            member.stamps = newStamps;
+            member.totalStampsEarned = newTotalEarned;
+            member.points = newPoints;
+            member.tier = newTier;
+
+            const actionSummary = actualAdded > 0
+                ? `+${actualAdded} Stamp & +${actualPointsAdded} Poin (${label})`
+                : `+${actualPointsAdded} Poin (${label})`;
+
+            const waStatus = await triggerWhatsAppNotification(member, actionSummary);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `${actionSummary} • ${waStatus}`,
+                stampsDelta: actualAdded,
+                pointsDelta: actualPointsAdded,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+
+            if (actualAdded > 0 && newStamps === 10 && !member.stage1Claimed) {
+                showToast(`${member.name} mencapai 10 Stamp Pertama! Gratis Kopsu / North Women siap diklaim. [${waStatus}]`, "success");
+            } else if (actualAdded > 0 && newStamps === 20) {
+                showToast(`${member.name} mencapai 20 Stamp! Gratis Americano / Lychee Tea siap diklaim. [${waStatus}]`, "success");
+            } else if (newPoints === 400 && currentPoints < 400) {
+                showToast(`${member.name} mencapai batas maksimal 400 Poin! Siap klaim Free Northman dan Donat. [${waStatus}]`, "success");
+            } else {
+                const progressSummary = actualAdded > 0
+                    ? `+${actualAdded} Stamp & +${actualPointsAdded} Poin`
+                    : `+${actualPointsAdded} Poin`;
+                showToast(`${progressSummary} tersimpan! [${waStatus}]`, "success");
+            }
+        }
+
+        async function handleCustomPosTransaction(e) {
+            e.preventDefault();
+            const amount = parseInt(document.getElementById('pos-custom-amount').value, 10) || 0;
+            const stamps = parseInt(document.getElementById('pos-custom-stamps').value, 10) || 0;
+            await cashierAddStamp(stamps, amount, `Transaksi Rp ${amount.toLocaleString('id-ID')}`);
+            document.getElementById('pos-custom-amount').value = '';
+        }
+
+        function cashierQuickRedeemStage() {
+            if (!staffSession.cashier || !selectedPosMemberId) return;
+            const member = state.members.find(m => m.id === selectedPosMemberId);
+            if (!member) return;
+
+            const st = member.stamps || 0;
+            const s1Claimed = Boolean(member.stage1Claimed);
+
+            if (st >= 10 && !s1Claimed) {
+                openPosDirectRedeemModal(member, 1, ["Free Northman Kopsu", "Free North Women"]);
+            } else if (st >= 20 && s1Claimed) {
+                openPosDirectRedeemModal(member, 2, ["Free North Americano", "Free North Lychee Tea"]);
+            } else if (st >= 20 && !s1Claimed) {
+                openPosDirectRedeemModal(member, 1, ["Free Northman Kopsu", "Free North Women"]);
+            } else {
+                const needed = st < 10 ? (10 - st) : (20 - st);
+                showToast(`Belum cukup stamp. Kurang ${needed} stamp lagi untuk klaim hadiah berikutnya.`, "error");
+            }
+        }
+
+        function openPosDirectRedeemModal(member, stage, variants) {
+            const stageTitle = stage === 1 ? "10 Stamp Pertama" : "10 Stamp Kedua (Reset Siklus)";
+            document.getElementById('modal-title').textContent = `Kasir Redeem — ${stageTitle}`;
+            document.getElementById('modal-message').innerHTML = `
+                <p class="mb-3">Pilih minuman yang diserahkan kepada <strong>${member.name}</strong>:</p>
+                <div class="space-y-2">
+                    ${variants.map(v => `
+                        <button type="button" onclick="executePosDirectRedeem('${member.id}', ${stage}, '${v}')" class="w-full p-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-950 hover:text-white border border-emerald-200 font-bold text-sm text-left transition flex items-center justify-between">
+                            <span>${v}</span>
+                            <span class="text-xs uppercase">Serahkan & Potong</span>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('modal-actions').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-oat-100 text-espresso-800 text-xs font-bold">Batal</button>
+            `;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        async function executePosDirectRedeem(memberId, stage, variantName) {
+            closeModal();
+            const member = state.members.find(m => m.id === memberId);
+            if (!member) return;
+
+            if (stage === 1) {
+                member.stage1Claimed = true;
+            } else {
+                member.stamps = 0;
+                member.stage1Claimed = false;
+            }
+            state.settings.totalRedeemedAllTime = (state.settings.totalRedeemedAllTime || 0) + 1;
+
+            const waStatus = await triggerWhatsAppNotification(member, `Kasir Redeem Tahap ${stage}: ${variantName}`);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `Kasir Redeem Tahap ${stage}: ${variantName}${stage === 2 ? ' (Siklus Reset ke 0)' : ''} • ${waStatus}`,
+                stampsDelta: stage === 2 ? -20 : 0,
+                pointsDelta: 0,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+            showToast(`${variantName} berhasil diklaim untuk ${member.name}! [${waStatus}]`, "success");
+        }
+
+        async function cashierVerifyVoucher() {
+            if (!staffSession.cashier || !selectedPosMemberId) return;
+            const member = state.members.find(m => m.id === selectedPosMemberId);
+            if (!member || !member.activeVoucher) return;
+
+            const voucher = member.activeVoucher;
+            member.activeVoucher = null;
+            state.settings.totalRedeemedAllTime = (state.settings.totalRedeemedAllTime || 0) + 1;
+
+            const waStatus = await triggerWhatsAppNotification(member, `Voucher Selesai Digunakan: ${voucher.title}`);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `Voucher Selesai Digunakan: ${voucher.title} (${voucher.code}) • ${waStatus}`,
+                stampsDelta: 0,
+                pointsDelta: 0,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+            showToast(`Voucher ${voucher.code} telah dikonfirmasi & diserahkan! [${waStatus}]`, "success");
+        }
+
+        // --- ADMIN VIEW ---
+        function renderAdminView() {
+            if (!staffSession.admin) return;
+            document.getElementById('kpi-total-members').textContent = state.members.length;
+            const totalStamps = state.members.reduce((sum, m) => sum + (m.totalStampsEarned || m.stamps || 0), 0);
+            document.getElementById('kpi-total-stamps').textContent = totalStamps;
+            document.getElementById('kpi-total-redeemed').textContent = state.settings.totalRedeemedAllTime || 0;
+            document.getElementById('kpi-active-rewards').textContent = state.rewards.filter(r => r.type === 'points').length;
+
+            const pointsRateInput = document.getElementById('admin-set-points-rate');
+            if (document.activeElement !== pointsRateInput) {
+                pointsRateInput.value = state.settings.pointsPer10k || 10;
+                document.getElementById('admin-set-welcome').value = state.settings.welcomeStamps ?? 1;
+                document.getElementById('admin-set-cashier-pin').value = state.settings.cashierPin || 'KASIR123';
+                document.getElementById('admin-set-admin-pin').value = state.settings.adminPin || 'ADMIN123';
+            }
+
+            const pointsRewards = state.rewards.filter(r => r.type === 'points' && r.cost <= 400);
+            document.getElementById('admin-rewards-list').innerHTML = pointsRewards.map(r => `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-oat-50 border border-oat-200 text-xs">
+                    <div>
+                        <p class="font-bold text-espresso-900">${r.title}</p>
+                        <p class="text-[11px] text-caramel-600 font-semibold">${r.cost} Poin</p>
+                    </div>
+                    <button onclick="deleteReward('${r.id}')" class="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition" title="Hapus">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            document.getElementById('admin-members-tbody').innerHTML = state.members.map(m => {
+                const st = m.stamps || 0;
+                const cappedPts = Math.min(400, m.points || 0);
+                const stageStatus = m.stage1Claimed
+                    ? `<span class="text-[10px] font-bold text-emerald-700 block">T1 Klaim • Menuju T2</span>`
+                    : (st >= 10 ? `<span class="text-[10px] font-bold text-amber-600 block">T1 Siap Klaim</span>` : `<span class="text-[10px] text-espresso-700 block">Tahap 1</span>`);
+                return `
+                    <tr class="hover:bg-oat-50/70">
+                        <td class="py-3 px-2">
+                            <p class="font-bold text-espresso-900">${m.name}</p>
+                            <p class="text-[11px] font-mono text-espresso-700">${m.id} • ${m.phone}</p>
+                        </td>
+                        <td class="py-3 px-2">
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-oat-100 text-espresso-800 border border-oat-200">${m.tier || 'Regular'}</span>
+                        </td>
+                        <td class="py-3 px-2 text-center">
+                            <span class="font-extrabold text-caramel-600">${st}/20</span>
+                            ${stageStatus}
+                        </td>
+                        <td class="py-3 px-2 text-right font-semibold text-espresso-900">
+                            ${cappedPts}/400
+                        </td>
+                        <td class="py-3 px-2 text-right">
+                            <div class="inline-flex items-center gap-1">
+                                <button onclick="adminAdjustStamp('${m.id}', 1)" class="px-2 py-1 rounded bg-espresso-900 text-oat-50 text-xs font-bold hover:bg-espresso-700">+1</button>
+                                <button onclick="adminAdjustStamp('${m.id}', -1)" class="px-2 py-1 rounded bg-oat-200 text-espresso-900 text-xs font-bold hover:bg-oat-300">-1</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('admin-audit-log').innerHTML = state.logs.slice(0, 20).map(l => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-oat-50 border border-oat-200/60 text-xs">
+                    <div>
+                        <span class="font-mono font-bold text-caramel-600">[${l.memberId}]</span>
+                        <span class="font-bold text-espresso-900"> ${l.memberName}:</span>
+                        <span class="text-espresso-800"> ${l.action}</span>
+                    </div>
+                    <span class="text-[11px] text-espresso-700 shrink-0 ml-2">${formatTime(l.timestamp)}</span>
+                </div>
+            `).join('');
+        }
+
+        function saveLoyaltySettings(e) {
+            e.preventDefault();
+            if (!staffSession.admin) return;
+            state.settings.pointsPer10k = parseInt(document.getElementById('admin-set-points-rate').value, 10) || 10;
+            state.settings.welcomeStamps = parseInt(document.getElementById('admin-set-welcome').value, 10) || 0;
+            state.settings.cashierPin = document.getElementById('admin-set-cashier-pin').value.trim() || 'KASIR123';
+            state.settings.adminPin = document.getElementById('admin-set-admin-pin').value.trim() || 'ADMIN123';
+            saveState(state);
+            renderAllViews();
+            showToast("Pengaturan loyalitas & PIN berhasil disimpan!", "success");
+        }
+
+        function addNewReward(e) {
+            e.preventDefault();
+            if (!staffSession.admin) return;
+            const title = document.getElementById('new-reward-title').value.trim();
+            const cost = parseInt(document.getElementById('new-reward-cost').value, 10);
+
+            if (cost > 400 || cost < 10) {
+                showToast("Batas penukaran poin maksimal adalah 400 poin.", "error");
+                return;
+            }
+
+            state.rewards.push({
+                id: `REW-${Date.now()}`,
+                title,
+                type: 'points',
+                cost,
+                desc: `Penukaran ${cost} Poin Member NORTHMAN`
+            });
+            state.rewards.sort((a, b) => a.cost - b.cost);
+            saveState(state);
+            renderAllViews();
+
+            document.getElementById('new-reward-title').value = '';
+            document.getElementById('new-reward-cost').value = '';
+            showToast("Hadiah poin baru ditambahkan!", "success");
+        }
+
+        function deleteReward(id) {
+            if (!staffSession.admin) return;
+            state.rewards = state.rewards.filter(r => r.id !== id);
+            saveState(state);
+            renderAllViews();
+            showToast("Hadiah dihapus dari katalog.", "success");
+        }
+
+        async function adminAdjustStamp(memberId, delta) {
+            if (!staffSession.admin) return;
+            const member = state.members.find(m => m.id === memberId);
+            if (!member) return;
+            const nextStamps = Math.max(0, Math.min(20, (member.stamps || 0) + delta));
+            member.stamps = nextStamps;
+            if (nextStamps < 10) member.stage1Claimed = false;
+
+            const waStatus = await triggerWhatsAppNotification(member, `Admin Penyesuaian Stamp (${delta > 0 ? '+' : ''}${delta})`);
+            state.logs.unshift({
+                id: 'LOG-' + Date.now(),
+                memberId: member.id,
+                memberName: member.name,
+                action: `Admin Penyesuaian Stamp (${delta > 0 ? '+' : ''}${delta}) • ${waStatus}`,
+                stampsDelta: delta,
+                pointsDelta: 0,
+                timestamp: Date.now()
+            });
+            saveState(state);
+            renderAllViews();
+            showToast(`Stamp ${member.name} disesuaikan (${delta > 0 ? '+' : ''}${delta}). [${waStatus}]`, "success");
+        }
+
+        function resetDemoDatabase() {
+            if (!staffSession.admin) return;
+            openModal(
+                "Reset Data Demo NORTHMAN?",
+                "Seluruh data member, katalog, dan riwayat transaksi akan dikembalikan ke data awal.",
+                () => {
+                    closeModal();
+                    const fresh = getDefaultState();
+                    saveState(fresh);
+                    selectedPosMemberId = fresh.members[0]?.id || null;
+                    renderAllViews();
+                    showToast("Database berhasil di-reset ke data awal!", "success");
+                }
+            );
+        }
+
+        // --- HELPERS ---
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-red-900 border-red-700 text-white' : 'bg-espresso-900 border-caramel-500 text-oat-50';
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold transform transition-all duration-300 translate-y-0 ${bg}`;
+            toast.innerHTML = `
+                <span class="w-2 h-2 rounded-full ${type === 'error' ? 'bg-red-400' : 'bg-caramel-400'} shrink-0"></span>
+                <span class="flex-1">${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        function openModal(title, message, onConfirm) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            const actions = document.getElementById('modal-actions');
+            actions.innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-oat-100 text-espresso-800 text-xs font-bold">Batal</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl bg-espresso-900 text-oat-50 text-xs font-bold">Ya, Lanjutkan</button>
+            `;
+            document.getElementById('modal-confirm-btn').onclick = onConfirm;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function formatTime(ts) {
+            if (!ts) return 'Baru saja';
+            const d = new Date(ts);
+            return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WITA';
+        }
+
+        lucide.createIcons();
+        renderAllViews();
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "northman-loyalty-pos",
+  "version": "1.0.0",
+  "description": "NORTHMAN Digital Loyalty & POS System for Vercel",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
