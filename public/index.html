@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NORTHMAN — Digital Loyalty & POS System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+          },
+          colors: {
+            espresso: {
+              950: '#160F0A',
+              900: '#211710',
+              800: '#332419',
+              700: '#4A3525',
+            },
+            amberwarm: {
+              400: '#E5A94C',
+              500: '#D48C2A',
+              600: '#B57119',
+            },
+            cream: {
+              50: '#FAF7F2',
+              100: '#F3ECE1',
+              200: '#E6DAC8',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #F3ECE1;
+      color: #211710;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .tab-btn {
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Header -->
+  <header class="bg-espresso-950 text-cream-50 sticky top-0 z-30 shadow-lg border-b border-espresso-800">
+    <div class="max-w-5xl mx-auto px-4 py-3.5">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amberwarm-400 to-amberwarm-600 flex items-center justify-center text-espresso-950 font-serif font-bold text-xl shadow">
+            N
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-serif font-bold text-lg tracking-wider text-white">NORTHMAN</h1>
+              <span class="text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-amberwarm-500/20 text-amberwarm-400 border border-amberwarm-500/30">
+                CLOUD READY
+              </span>
+            </div>
+            <p class="text-xs text-cream-200/75">Specialty Coffee &amp; Roastery Loyalty</p>
+          </div>
+        </div>
+
+        <button id="btn-logout-staff" type="button" onclick="logoutStaff()" class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-200 border border-red-400/30 hover:bg-red-500/30">
+          Keluar Staf
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="mt-3.5 grid grid-cols-3 gap-1.5 bg-espresso-900 p-1 rounded-xl border border-espresso-800" role="tablist">
+        <button id="tab-customer" type="button" onclick="requestTab('customer')" class="tab-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-amberwarm-500 text-espresso-950 shadow">
+          Pelanggan
+        </button>
+        <button id="tab-cashier" type="button" onclick="requestTab('cashier')" class="tab-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all text-cream-100 hover:bg-espresso-800">
+          Kasir POS
+        </button>
+        <button id="tab-admin" type="button" onclick="requestTab('admin')" class="tab-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all text-cream-100 hover:bg-espresso-800">
+          Admin
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+
+    <!-- ==================== VIEW 1: PELANGGAN ==================== -->
+    <section id="view-customer" class="space-y-6">
+      <div class="max-w-md mx-auto bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-cream-200 text-center">
+        <span class="inline-block text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-cream-100 text-amberwarm-600 mb-3">
+          KARTU MEMBER DIGITAL
+        </span>
+        <h2 class="font-serif text-2xl sm:text-3xl font-bold text-espresso-900 leading-snug">
+          Lihat Kartu NORTHMAN Anda
+        </h2>
+        <p class="text-sm text-espresso-700/80 mt-2">
+          Masuk menggunakan <strong>Nomor WhatsApp</strong>, <strong>Nama</strong>, atau <strong>Kode Kartu</strong> Anda.
+        </p>
+
+        <form onsubmit="handleCustomerLookup(event)" class="mt-6 text-left space-y-4">
+          <div>
+            <label for="customer-query" class="block text-[11px] font-bold uppercase tracking-wider text-espresso-700 mb-1.5">
+              NOMOR WHATSAPP / NAMA / KODE KARTU
+            </label>
+            <input
+              id="customer-query"
+              type="text"
+              placeholder="Contoh: 081234567890, Budi Santoso, atau NM-1001"
+              class="w-full px-4 py-3.5 rounded-xl bg-cream-50 border border-cream-200 text-espresso-900 text-sm focus:outline-none focus:ring-2 focus:ring-amberwarm-500"
+            />
+          </div>
+          <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-white font-semibold text-sm transition shadow">
+            Lihat Kartu Saya
+          </button>
+        </form>
+
+        <div class="mt-4 text-xs text-espresso-700/70">
+          Demo cepat: <button type="button" onclick="quickDemoCustomer('NM-1001')" class="underline font-semibold text-amberwarm-600">NM-1001</button> ·
+          <button type="button" onclick="quickDemoCustomer('081234567890')" class="underline font-semibold text-amberwarm-600">081234567890</button>
+        </div>
+      </div>
+
+      <!-- Customer Card Result -->
+      <div id="customer-card-container" class="hidden max-w-md mx-auto space-y-5">
+        <div class="bg-gradient-to-br from-espresso-950 via-espresso-900 to-espresso-800 text-cream-50 rounded-3xl p-6 shadow-xl border border-amberwarm-500/30 relative overflow-hidden">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-[11px] uppercase tracking-widest text-amberwarm-400 font-bold">NORTHMAN MEMBER</p>
+              <h3 id="card-member-name" class="font-serif text-2xl font-bold text-white mt-0.5">-</h3>
+              <p id="card-member-phone" class="text-xs text-cream-200/80 mt-0.5">-</p>
+              <span id="card-member-id" class="inline-block mt-2 text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-white/10 text-amberwarm-400">
+                NM-1001
+              </span>
+            </div>
+            <div class="bg-white p-2 rounded-xl shadow shrink-0">
+              <div id="member-qrcode"></div>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+            <div>
+              <p class="text-[11px] uppercase tracking-wider text-cream-200/70">Saldo Poin</p>
+              <p class="text-2xl font-bold text-amberwarm-400"><span id="card-member-points">0</span> <span class="text-xs font-normal text-cream-100">/ 400 pts</span></p>
+            </div>
+            <div class="text-right">
+              <p class="text-[11px] uppercase tracking-wider text-cream-200/70">Siklus Stamp</p>
+              <p id="card-member-stage" class="text-sm font-bold text-white">Tahap 1 (0/10)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Stage Stamp Progress (20 Total) -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-cream-200">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-bold text-sm text-espresso-900">Progres Stamp (2 Tahap · 20 Stamp)</h4>
+            <span id="stamp-total-label" class="text-xs font-semibold text-amberwarm-600">0 / 20</span>
+          </div>
+          <p class="text-xs text-espresso-700/80 mb-3">Tahap 1 (1–10): Free Regular Coffee · Tahap 2 (11–20): Free Signature Drink + Donut</p>
+          <div id="stamp-grid" class="grid grid-cols-5 gap-2"></div>
+        </div>
+
+        <!-- Reward Catalog (Max 400 pts) -->
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-cream-200">
+          <h4 class="font-bold text-sm text-espresso-900 mb-3">Katalog Penukaran Poin (Maks. 400 pts)</h4>
+          <div id="customer-rewards-list" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: KASIR POS ==================== -->
+    <section id="view-cashier" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 rounded-3xl border border-cream-200 shadow-sm">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-widest text-amberwarm-600">TERMINAL KASIR POS</span>
+          <h2 class="font-serif text-xl sm:text-2xl font-bold text-espresso-900">Input Poin &amp; Stamp Pelanggan</h2>
+        </div>
+        <button type="button" onclick="openNewCustomerModal()" class="py-2.5 px-4 rounded-xl bg-amberwarm-500 hover:bg-amberwarm-600 text-espresso-950 font-bold text-sm shadow transition">
+          + Pelanggan Baru
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: Search & Member Selection -->
+        <div class="lg:col-span-5 bg-white p-5 rounded-3xl border border-cream-200 shadow-sm space-y-4">
+          <div>
+            <label for="pos-search" class="block text-xs font-bold uppercase tracking-wider text-espresso-700 mb-1.5">
+              Cari Pelanggan (WA / Nama / ID)
+            </label>
+            <input
+              id="pos-search"
+              type="text"
+              oninput="renderPosCustomerList()"
+              placeholder="Ketik nomor WA, nama, atau NM-..."
+              class="w-full px-4 py-3 rounded-xl bg-cream-50 border border-cream-200 text-sm focus:outline-none focus:ring-2 focus:ring-amberwarm-500"
+            />
+          </div>
+          <div id="pos-customer-list" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Right: Active POS Action Panel -->
+        <div class="lg:col-span-7 bg-white p-6 rounded-3xl border border-cream-200 shadow-sm">
+          <div id="pos-empty-state" class="text-center py-12 text-espresso-700/70">
+            <p class="font-semibold text-base text-espresso-900">Pilih pelanggan di sebelah kiri</p>
+            <p class="text-xs mt-1">Atau klik tombol <strong>+ Pelanggan Baru</strong> untuk mendaftarkan member baru.</p>
+          </div>
+
+          <div id="pos-active-panel" class="hidden space-y-5">
+            <div class="p-4 rounded-2xl bg-espresso-900 text-cream-50 flex items-center justify-between">
+              <div>
+                <p id="pos-selected-id" class="text-xs font-mono text-amberwarm-400">NM-1001</p>
+                <h3 id="pos-selected-name" class="font-serif text-xl font-bold text-white">-</h3>
+                <p id="pos-selected-phone" class="text-xs text-cream-200/80">-</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-cream-200/75">Poin: <strong id="pos-selected-points" class="text-amberwarm-400 text-base">0</strong>/400</p>
+                <p class="text-xs text-cream-200/75">Stamp: <strong id="pos-selected-stamps" class="text-white text-base">0</strong>/20</p>
+              </div>
+            </div>
+
+            <!-- Quick Transaction Buttons -->
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-espresso-700 mb-2">Transaksi Cepat</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="button" onclick="addTransaction(10, 1)" class="py-3.5 px-4 rounded-xl bg-espresso-900 hover:bg-espresso-800 text-white font-bold text-sm shadow transition text-left flex items-center justify-between">
+                  <span>+10 Poin (Rp 10.000)</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-amberwarm-500 text-espresso-950">+1 Stamp</span>
+                </button>
+                <button type="button" onclick="addTransaction(25, 1)" class="py-3.5 px-4 rounded-xl bg-cream-100 hover:bg-cream-200 text-espresso-900 font-bold text-sm border border-cream-200 transition text-left flex items-center justify-between">
+                  <span>+25 Poin (Rp 25.000)</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-espresso-900 text-white">+1 Stamp</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Custom Nominal -->
+            <div class="pt-3 border-t border-cream-200">
+              <label for="pos-custom-amount" class="block text-xs font-bold uppercase tracking-wider text-espresso-700 mb-1.5">
+                Input Nominal Belanja Custom (Rp 1.000 = 1 Poin)
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="pos-custom-amount"
+                  type="number"
+                  min="1000"
+                  step="1000"
+                  placeholder="Contoh: 35000"
+                  class="flex-1 px-4 py-3 rounded-xl bg-cream-50 border border-cream-200 text-sm focus:outline-none focus:ring-2 focus:ring-amberwarm-500"
+                />
+                <button type="button" onclick="submitCustomTransaction()" class="px-5 py-3 rounded-xl bg-amberwarm-500 hover:bg-amberwarm-600 text-espresso-950 font-bold text-sm transition">
+                  Proses
+                </button>
+              </div>
+            </div>
+
+            <!-- Redeem Section in POS -->
+            <div class="pt-3 border-t border-cream-200">
+              <p class="text-xs font-bold uppercase tracking-wider text-espresso-700 mb-2">Tukar Reward Pelanggan</p>
+              <div id="pos-redeem-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: ADMIN ==================== -->
+    <section id="view-admin" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-3xl border border-cream-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-widest text-amberwarm-600">PANEL ADMIN NORTHMAN</span>
+          <h2 class="font-serif text-2xl font-bold text-espresso-900">Ringkasan Loyalty &amp; Pengaturan PIN</h2>
+        </div>
+        <button type="button" onclick="resetDemoData()" class="py-2 px-4 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-bold hover:bg-red-100">
+          Reset Data Demo
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-2xl border border-cream-200">
+          <p class="text-xs text-espresso-700/75">Total Member</p>
+          <p id="stat-total-members" class="text-2xl font-bold text-espresso-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-cream-200">
+          <p class="text-xs text-espresso-700/75">Total Poin Beredar</p>
+          <p id="stat-total-points" class="text-2xl font-bold text-amberwarm-600 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-cream-200">
+          <p class="text-xs text-espresso-700/75">Total Stamp</p>
+          <p id="stat-total-stamps" class="text-2xl font-bold text-espresso-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl border border-cream-200">
+          <p class="text-xs text-espresso-700/75">Transaksi Tercatat</p>
+          <p id="stat-total-tx" class="text-2xl font-bold text-espresso-900 mt-1">0</p>
+        </div>
+      </div>
+
+      <!-- PIN Settings -->
+      <div class="bg-white p-6 rounded-3xl border border-cream-200 shadow-sm space-y-4">
+        <h3 class="font-bold text-base text-espresso-900">Ubah PIN Akses Staf</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="admin-set-cashier-pin" class="block text-xs font-bold text-espresso-700 mb-1">PIN Kasir POS (Default: KASIR123)</label>
+            <input id="admin-set-cashier-pin" type="text" class="w-full px-4 py-2.5 rounded-xl bg-cream-50 border border-cream-200 text-sm" />
+          </div>
+          <div>
+            <label for="admin-set-admin-pin" class="block text-xs font-bold text-espresso-700 mb-1">PIN Admin (Default: ADMIN123)</label>
+            <input id="admin-set-admin-pin" type="text" class="w-full px-4 py-2.5 rounded-xl bg-cream-50 border border-cream-200 text-sm" />
+          </div>
+        </div>
+        <button type="button" onclick="saveStaffPins()" class="px-5 py-2.5 rounded-xl bg-espresso-900 text-white text-sm font-semibold hover:bg-espresso-800">
+          Simpan Perubahan PIN
+        </button>
+      </div>
+
+      <!-- Transaction Logs -->
+      <div class="bg-white p-6 rounded-3xl border border-cream-200 shadow-sm">
+        <h3 class="font-bold text-base text-espresso-900 mb-3">Riwayat Transaksi &amp; Notifikasi WhatsApp</h3>
+        <div id="admin-tx-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL: LOGIN PIN STAF ==================== -->
+  <div id="pin-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-cream-200">
+      <span class="text-[11px] font-bold uppercase tracking-widest text-amberwarm-600">AKSES TERBATAS STAF</span>
+      <h3 id="pin-modal-title" class="font-serif text-xl font-bold text-espresso-900 mt-1">Login Kasir POS</h3>
+      <p id="pin-modal-subtitle" class="text-xs text-espresso-700/80 mt-1">Masukkan PIN akses untuk melanjutkan.</p>
+
+      <form onsubmit="submitStaffPin(event)" class="mt-4 space-y-4">
+        <div>
+          <label for="pin-input" class="block text-xs font-bold uppercase tracking-wider text-espresso-700 mb-1">PIN Akses</label>
+          <input
+            id="pin-input"
+            type="password"
+            autocomplete="off"
+            placeholder="Masukkan PIN..."
+            class="w-full px-4 py-3 rounded-xl bg-cream-50 border border-cream-200 text-base font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-amberwarm-500"
+          />
+          <p id="pin-error-msg" class="hidden text-xs text-red-600 font-semibold mt-1.5">PIN salah. Silakan coba lagi.</p>
+        </div>
+
+        <div class="flex gap-2">
+          <button type="button" onclick="closePinModal()" class="flex-1 py-3 rounded-xl bg-cream-100 text-espresso-900 font-semibold text-sm">
+            Batal
+          </button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-espresso-900 text-white font-semibold text-sm">
+            Masuk
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: TAMBAH PELANGGAN BARU ==================== -->
+  <div id="new-customer-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-cream-200">
+      <span class="text-[11px] font-bold uppercase tracking-widest text-amberwarm-600">REGISTRASI MEMBER</span>
+      <h3 class="font-serif text-xl font-bold text-espresso-900 mt-1">Tambah Pelanggan Baru</h3>
+      <p class="text-xs text-espresso-700/80 mt-1">ID kartu berurutan (NM-1004, dst.) dibuat otomatis.</p>
+
+      <form onsubmit="createNewCustomer(event)" class="mt-4 space-y-3.5">
+        <div>
+          <label for="new-cust-name" class="block text-xs font-bold text-espresso-700 mb-1">Nama Lengkap</label>
+          <input id="new-cust-name" type="text" required placeholder="Contoh: Rina Wijaya" class="w-full px-3.5 py-2.5 rounded-xl bg-cream-50 border border-cream-200 text-sm" />
+        </div>
+        <div>
+          <label for="new-cust-phone" class="block text-xs font-bold text-espresso-700 mb-1">Nomor WhatsApp</label>
+          <input id="new-cust-phone" type="tel" required placeholder="Contoh: 081298765432" class="w-full px-3.5 py-2.5 rounded-xl bg-cream-50 border border-cream-200 text-sm" />
+        </div>
+        <p id="new-cust-error" class="hidden text-xs text-red-600 font-semibold"></p>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeNewCustomerModal()" class="flex-1 py-2.5 rounded-xl bg-cream-100 text-espresso-900 font-semibold text-sm">
+            Batal
+          </button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-amberwarm-500 text-espresso-950 font-bold text-sm">
+            Simpan Member
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-espresso-950 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl border border-amberwarm-500/40 max-w-xs text-center"></div>
+
+  <script>
+    const STORAGE_KEY = 'northman_loyalty_data_v2';
+    const PIN_STORAGE_KEY = 'northman_staff_pins_v2';
+
+    const DEFAULT_PINS = {
+      cashier: 'KASIR123',
+      admin: 'ADMIN123'
+    };
+
+    const REWARDS = [
+      { id: 'r1', name: 'Free Es Kopi Susu Northman', cost: 100 },
+      { id: 'r2', name: 'Free Classic Donut / Croissant', cost: 150 },
+      { id: 'r3', name: 'Free Signature Sea Salt Latte', cost: 250 },
+      { id: 'r4', name: 'NORTHMAN Tumbler / Beans 200g', cost: 400 }
+    ];
+
+    const DEFAULT_DATA = {
+      members: [
+        { id: 'NM-1001', name: 'Budi Santoso', phone: '081234567890', points: 140, stamps: 7 },
+        { id: 'NM-1002', name: 'Siti Rahma', phone: '082250592240', points: 260, stamps: 13 },
+        { id: 'NM-1003', name: 'Dimas Pratama', phone: '085711223344', points: 80, stamps: 4 }
+      ],
+      transactions: [
+        { id: 'TX-1', memberId: 'NM-1001', memberName: 'Budi Santoso', desc: '+10 Poin & +1 Stamp', time: Date.now() - 3600000, waStatus: 'Simulasi Terkirim' }
+      ]
+    };
+
+    let state = loadState();
+    let pins = loadPins();
+    let currentTab = 'customer';
+    let pendingTargetTab = null;
+    let unlockedRole = null; // 'cashier' | 'admin'
+    let selectedMemberId = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.members)) return parsed;
+        }
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadPins() {
+      try {
+        const raw = localStorage.getItem(PIN_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.cashier && parsed.admin) return parsed;
+        }
+      } catch (e) {}
+      return { ...DEFAULT_PINS };
+    }
+
+    function normalizePhone(phone) {
+      return String(phone || '').replace(/\D/g, '');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // ==================== TAB & PIN AUTH ====================
+    function requestTab(tabName) {
+      if (tabName === 'customer') {
+        switchToTab('customer');
+        return;
+      }
+      if (unlockedRole === 'admin' || unlockedRole === tabName) {
+        switchToTab(tabName);
+        return;
+      }
+      pendingTargetTab = tabName;
+      openPinModal(tabName);
+    }
+
+    function switchToTab(tabName) {
+      currentTab = tabName;
+      const tabs = ['customer', 'cashier', 'admin'];
+      tabs.forEach((t) => {
+        const btn = document.getElementById('tab-' + t);
+        const view = document.getElementById('view-' + t);
+        if (btn) {
+          if (t === tabName) {
+            btn.className = 'tab-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-amberwarm-500 text-espresso-950 shadow';
+          } else {
+            btn.className = 'tab-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all text-cream-100 hover:bg-espresso-800';
+          }
+        }
+        if (view) {
+          if (t === tabName) view.classList.remove('hidden');
+          else view.classList.add('hidden');
+        }
+      });
+
+      const logoutBtn = document.getElementById('btn-logout-staff');
+      if (logoutBtn) {
+        if (unlockedRole) logoutBtn.classList.remove('hidden');
+        else logoutBtn.classList.add('hidden');
+      }
+
+      if (tabName === 'cashier') renderPosCustomerList();
+      if (tabName === 'admin') renderAdminDashboard();
+    }
+
+    function openPinModal(role) {
+      const modal = document.getElementById('pin-modal');
+      const title = document.getElementById('pin-modal-title');
+      const subtitle = document.getElementById('pin-modal-subtitle');
+      const input = document.getElementById('pin-input');
+      const err = document.getElementById('pin-error-msg');
+
+      title.textContent = role === 'admin' ? 'Login Admin NORTHMAN' : 'Login Kasir POS';
+      subtitle.textContent = role === 'admin'
+        ? 'Masukkan PIN Admin (default: ADMIN123)'
+        : 'Masukkan PIN Kasir (default: KASIR123)';
+      input.value = '';
+      err.classList.add('hidden');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => input.focus(), 100);
+    }
+
+    function closePinModal() {
+      const modal = document.getElementById('pin-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      pendingTargetTab = null;
+    }
+
+    function submitStaffPin(e) {
+      e.preventDefault();
+      const inputVal = document.getElementById('pin-input').value.trim();
+      const err = document.getElementById('pin-error-msg');
+
+      if (pendingTargetTab === 'cashier' && (inputVal === pins.cashier || inputVal === pins.admin)) {
+        unlockedRole = inputVal === pins.admin ? 'admin' : 'cashier';
+        const target = pendingTargetTab;
+        closePinModal();
+        switchToTab(target);
+        showToast('Berhasil masuk ke Kasir POS');
+        return;
+      }
+
+      if (pendingTargetTab === 'admin' && inputVal === pins.admin) {
+        unlockedRole = 'admin';
+        const target = pendingTargetTab;
+        closePinModal();
+        switchToTab(target);
+        showToast('Berhasil masuk ke Panel Admin');
+        return;
+      }
+
+      err.classList.remove('hidden');
+    }
+
+    function logoutStaff() {
+      unlockedRole = null;
+      switchToTab('customer');
+      showToast('Sesi staf ditutup');
+    }
+
+    // ==================== CUSTOMER VIEW ====================
+    function quickDemoCustomer(val) {
+      document.getElementById('customer-query').value = val;
+      findAndRenderCustomer(val);
+    }
+
+    function handleCustomerLookup(e) {
+      e.preventDefault();
+      const q = document.getElementById('customer-query').value.trim();
+      if (!q) {
+        showToast('Masukkan Nomor WA, Nama, atau Kode Kartu');
+        return;
+      }
+      findAndRenderCustomer(q);
+    }
+
+    function findAndRenderCustomer(query) {
+      const qLower = query.toLowerCase();
+      const qDigits = normalizePhone(query);
+      const member = state.members.find((m) =>
+        m.id.toLowerCase() === qLower ||
+        m.name.toLowerCase().includes(qLower) ||
+        (qDigits && normalizePhone(m.phone) === qDigits)
+      );
+
+      if (!member) {
+        showToast('Member tidak ditemukan. Cek kembali data Anda.');
+        return;
+      }
+
+      document.getElementById('customer-card-container').classList.remove('hidden');
+      document.getElementById('card-member-name').textContent = member.name;
+      document.getElementById('card-member-phone').textContent = member.phone;
+      document.getElementById('card-member-id').textContent = member.id;
+      document.getElementById('card-member-points').textContent = member.points;
+
+      const stage = member.stamps >= 10 ? 2 : 1;
+      const stageCount = member.stamps >= 10 ? member.stamps - 10 : member.stamps;
+      document.getElementById('card-member-stage').textContent = `Tahap ${stage} (${stageCount}/10)`;
+      document.getElementById('stamp-total-label').textContent = `${member.stamps} / 20`;
+
+      // Render QR safely
+      const qrBox = document.getElementById('member-qrcode');
+      qrBox.innerHTML = '';
+      if (typeof QRCode !== 'undefined') {
+        try {
+          new QRCode(qrBox, {
+            text: member.id,
+            width: 68,
+            height: 68,
+            colorDark: '#160F0A',
+            colorLight: '#FFFFFF'
+          });
+        } catch (err) {
+          qrBox.textContent = member.id;
+        }
+      } else {
+        qrBox.textContent = member.id;
+      }
+
+      // Render 20 Stamps
+      const grid = document.getElementById('stamp-grid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 20; i++) {
+        const filled = i <= member.stamps;
+        const isMilestone = i === 10 || i === 20;
+        const cell = document.createElement('div');
+        cell.className = filled
+          ? 'aspect-square rounded-xl bg-amberwarm-500 text-espresso-950 font-bold text-xs flex items-center justify-center shadow-xs'
+          : 'aspect-square rounded-xl bg-cream-100 text-espresso-700/60 font-semibold text-xs flex items-center justify-center border border-cream-200';
+        cell.textContent = isMilestone ? (filled ? '★' : `${i}★`) : i;
+        grid.appendChild(cell);
+      }
+
+      // Render Rewards
+      const rwList = document.getElementById('customer-rewards-list');
+      rwList.innerHTML = '';
+      REWARDS.forEach((rw) => {
+        const enough = member.points >= rw.cost;
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-2xl bg-cream-50 border border-cream-200 flex items-center justify-between gap-3';
+        row.innerHTML = `
+          <div>
+            <p class="text-xs font-bold text-espresso-900">${rw.name}</p>
+            <p class="text-[11px] text-amberwarm-600 font-semibold">${rw.cost} Poin</p>
+          </div>
+          <span class="text-[11px] font-bold px-2.5 py-1 rounded-lg ${enough ? 'bg-green-100 text-green-800' : 'bg-cream-200 text-espresso-700'}">
+            ${enough ? 'Siap Tukar di Kasir' : 'Belum Cukup'}
+          </span>
+        `;
+        rwList.appendChild(row);
+      });
+    }
+
+    // ==================== POS CASHIER VIEW ====================
+    function renderPosCustomerList() {
+      const q = (document.getElementById('pos-search').value || '').trim().toLowerCase();
+      const list = document.getElementById('pos-customer-list');
+      list.innerHTML = '';
+
+      const filtered = state.members.filter((m) =>
+        m.name.toLowerCase().includes(q) ||
+        m.id.toLowerCase().includes(q) ||
+        m.phone.includes(q)
+      );
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<p class="text-xs text-espresso-700/70 py-4 text-center">Tidak ada pelanggan yang cocok.</p>';
+        return;
+      }
+
+      filtered.forEach((m) => {
+        const isSelected = m.id === selectedMemberId;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.onclick = () => selectPosMember(m.id);
+        btn.className = `w-full text-left p-3.5 rounded-2xl border transition flex items-center justify-between ${
+          isSelected
+            ? 'bg-espresso-900 text-white border-espresso-900 shadow'
+            : 'bg-cream-50 hover:bg-cream-100 text-espresso-900 border-cream-200'
+        }`;
+        btn.innerHTML = `
+          <div>
+            <p class="text-xs font-mono ${isSelected ? 'text-amberwarm-400' : 'text-amberwarm-600'} font-bold">${m.id}</p>
+            <p class="text-sm font-bold">${m.name}</p>
+            <p class="text-xs opacity-75">${m.phone}</p>
+          </div>
+          <div class="text-right text-xs">
+            <p class="font-bold">${m.points} pts</p>
+            <p class="opacity-75">${m.stamps}/20 stamp</p>
+          </div>
+        `;
+        list.appendChild(btn);
+      });
+    }
+
+    function selectPosMember(id) {
+      selectedMemberId = id;
+      renderPosCustomerList();
+      const member = state.members.find((m) => m.id === id);
+      if (!member) return;
+
+      document.getElementById('pos-empty-state').classList.add('hidden');
+      document.getElementById('pos-active-panel').classList.remove('hidden');
+
+      document.getElementById('pos-selected-id').textContent = member.id;
+      document.getElementById('pos-selected-name').textContent = member.name;
+      document.getElementById('pos-selected-phone').textContent = member.phone;
+      document.getElementById('pos-selected-points').textContent = member.points;
+      document.getElementById('pos-selected-stamps').textContent = member.stamps;
+
+      const redeemBox = document.getElementById('pos-redeem-list');
+      redeemBox.innerHTML = '';
+      REWARDS.forEach((rw) => {
+        const canRedeem = member.points >= rw.cost;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.disabled = !canRedeem;
+        btn.onclick = () => redeemReward(rw.id);
+        btn.className = canRedeem
+          ? 'p-3 rounded-xl bg-amberwarm-500/15 hover:bg-amberwarm-500/25 border border-amberwarm-500/40 text-left transition'
+          : 'p-3 rounded-xl bg-cream-50 border border-cream-200 text-left opacity-50 cursor-not-allowed';
+        btn.innerHTML = `
+          <p class="text-xs font-bold text-espresso-900">${rw.name}</p>
+          <p class="text-[11px] font-semibold text-amberwarm-600">Tukar ${rw.cost} Poin</p>
+        `;
+        redeemBox.appendChild(btn);
+      });
+    }
+
+    async function addTransaction(pointsToAdd, stampsToAdd) {
+      const member = state.members.find((m) => m.id === selectedMemberId);
+      if (!member) return;
+
+      member.points = Math.min(400, member.points + pointsToAdd);
+      member.stamps = member.stamps + stampsToAdd;
+      if (member.stamps > 20) member.stamps = member.stamps - 20;
+
+      const desc = `+${pointsToAdd} Poin & +${stampsToAdd} Stamp`;
+      const waStatus = await sendWaNotification(member, `Halo ${member.name}! Transaksi NORTHMAN berhasil (${desc}). Total Poin: ${member.points}/400, Stamp: ${member.stamps}/20.`);
+
+      state.transactions.unshift({
+        id: 'TX-' + Date.now(),
+        memberId: member.id,
+        memberName: member.name,
+        desc,
+        time: Date.now(),
+        waStatus
+      });
+
+      saveState();
+      selectPosMember(member.id);
+      showToast(`${desc} berhasil untuk ${member.name}`);
+    }
+
+    function submitCustomTransaction() {
+      const raw = Number(document.getElementById('pos-custom-amount').value);
+      if (!raw || raw < 1000) {
+        showToast('Masukkan nominal minimal Rp 1.000');
+        return;
+      }
+      const pts = Math.floor(raw / 1000);
+      document.getElementById('pos-custom-amount').value = '';
+      addTransaction(pts, 1);
+    }
+
+    async function redeemReward(rewardId) {
+      const member = state.members.find((m) => m.id === selectedMemberId);
+      const rw = REWARDS.find((r) => r.id === rewardId);
+      if (!member || !rw || member.points < rw.cost) return;
+
+      member.points -= rw.cost;
+      const desc = `Tukar Reward: ${rw.name} (-${rw.cost} Poin)`;
+      const waStatus = await sendWaNotification(member, `Halo ${member.name}! Penukaran reward "${rw.name}" berhasil. Sisa Poin: ${member.points}/400.`);
+
+      state.transactions.unshift({
+        id: 'TX-' + Date.now(),
+        memberId: member.id,
+        memberName: member.name,
+        desc,
+        time: Date.now(),
+        waStatus
+      });
+
+      saveState();
+      selectPosMember(member.id);
+      showToast(`Reward ${rw.name} ditukarkan!`);
+    }
+
+    async function sendWaNotification(member, message) {
+      try {
+        const res = await fetch('/api/wa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: member.phone,
+            message
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return data.mode === 'live' ? 'Terkirim via WA Gateway' : 'Simulasi Terkirim';
+        }
+      } catch (e) {}
+      return 'Simulasi Lokal';
+    }
+
+    // ==================== NEW CUSTOMER MODAL ====================
+    function openNewCustomerModal() {
+      document.getElementById('new-cust-name').value = '';
+      document.getElementById('new-cust-phone').value = '';
+      document.getElementById('new-cust-error').classList.add('hidden');
+      const modal = document.getElementById('new-customer-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeNewCustomerModal() {
+      const modal = document.getElementById('new-customer-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function generateNextMemberId() {
+      let maxNum = 1000;
+      state.members.forEach((m) => {
+        const match = String(m.id).match(/NM-(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+      return 'NM-' + (maxNum + 1);
+    }
+
+    function createNewCustomer(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-cust-name').value.trim();
+      const phone = document.getElementById('new-cust-phone').value.trim();
+      const err = document.getElementById('new-cust-error');
+
+      const cleanPhone = normalizePhone(phone);
+      if (cleanPhone.length < 9) {
+        err.textContent = 'Nomor WhatsApp tidak valid.';
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const duplicate = state.members.some((m) => normalizePhone(m.phone) === cleanPhone);
+      if (duplicate) {
+        err.textContent = 'Nomor WhatsApp sudah terdaftar sebagai member.';
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const newId = generateNextMemberId();
+      state.members.unshift({
+        id: newId,
+        name,
+        phone,
+        points: 0,
+        stamps: 0
+      });
+
+      saveState();
+      closeNewCustomerModal();
+      selectPosMember(newId);
+      showToast(`Member baru ${name} (${newId}) terdaftar!`);
+    }
+
+    // ==================== ADMIN DASHBOARD ====================
+    function renderAdminDashboard() {
+      document.getElementById('stat-total-members').textContent = state.members.length;
+      document.getElementById('stat-total-points').textContent = state.members.reduce((sum, m) => sum + m.points, 0);
+      document.getElementById('stat-total-stamps').textContent = state.members.reduce((sum, m) => sum + m.stamps, 0);
+      document.getElementById('stat-total-tx').textContent = state.transactions.length;
+
+      document.getElementById('admin-set-cashier-pin').value = pins.cashier;
+      document.getElementById('admin-set-admin-pin').value = pins.admin;
+
+      const txBox = document.getElementById('admin-tx-list');
+      txBox.innerHTML = '';
+      if (state.transactions.length === 0) {
+        txBox.innerHTML = '<p class="text-xs text-espresso-700/70">Belum ada transaksi.</p>';
+        return;
+      }
+
+      state.transactions.forEach((tx) => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-xl bg-cream-50 border border-cream-200 flex items-center justify-between gap-3 text-xs';
+        const timeStr = new Date(tx.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        item.innerHTML = `
+          <div>
+            <p class="font-bold text-espresso-900">${tx.memberName} (${tx.memberId})</p>
+            <p class="text-espresso-700">${tx.desc}</p>
+          </div>
+          <div class="text-right">
+            <span class="inline-block px-2 py-0.5 rounded bg-amberwarm-500/20 text-amberwarm-600 font-semibold">${tx.waStatus || 'Tercatat'}</span>
+            <p class="text-[11px] text-espresso-700/70 mt-0.5">${timeStr}</p>
+          </div>
+        `;
+        txBox.appendChild(item);
+      });
+    }
+
+    function saveStaffPins() {
+      const cPin = document.getElementById('admin-set-cashier-pin').value.trim();
+      const aPin = document.getElementById('admin-set-admin-pin').value.trim();
+      if (!cPin || !aPin) {
+        showToast('PIN Kasir dan Admin tidak boleh kosong');
+        return;
+      }
+      pins = { cashier: cPin, admin: aPin };
+      localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(pins));
+      showToast('PIN staf berhasil diperbarui');
+    }
+
+    function resetDemoData() {
+      state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      saveState();
+      renderAdminDashboard();
+      showToast('Data demo berhasil di-reset');
+    }
+
+    // Init default view
+    switchToTab('customer');
+  </script>
+</body>
+</html>
